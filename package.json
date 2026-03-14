@@ -1,0 +1,26 @@
+{
+  "name": "wgr",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "prepare": "husky",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint": "eslint . --ext .ts",
+    "lint-staged": "^16.3.3",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.0"
+  },
+  "lint-staged": {
+    "*.ts": "eslint --fix",
+    "*.{ts,tsx,js,json,css,html}": "prettier --write"
+  }
+}
