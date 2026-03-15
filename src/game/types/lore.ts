@@ -3,6 +3,9 @@ import { type UnlockId } from "./unlocks"
 export const ChapterKey = {
   Introduction: 0,
   PostIntroduction: 1,
+
+  AutosaveLoad: 1000,
+  AutosaveSave: 1001,
 } as const
 
 export type ChapterId = (typeof ChapterKey)[keyof typeof ChapterKey];
@@ -12,6 +15,7 @@ export const MessageTagKey = {
   Warn: "WARN",
   Err: "_ERR",
   Success: "GOOD",
+  Meta: "META",
 } as const
 
 export type MessageTag = (typeof MessageTagKey)[keyof typeof MessageTagKey];
@@ -21,6 +25,8 @@ export type ChapterEntry = {
   messages: Message[];
   prerequisites?: ChapterId[];
   unlockPrerequisites?: UnlockId[];
+  disableTrigger?: boolean;
+  repeatable?: boolean;
 };
 
 export type Message = {

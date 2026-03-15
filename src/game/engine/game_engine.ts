@@ -1,6 +1,7 @@
 import { LoreEngine } from "@game/lore/lore_engine"
 import { UnlockKey, type UnlockId } from "@game/types/unlocks"
 import { createCard, createButton, createProgress } from "@game/layout/util"
+import { ChapterKey, type ChapterId } from "@game/types/lore"
 
 const ActionKey = {
   VALIDATE_HUMANITY: 0,
@@ -73,6 +74,7 @@ export type GameSnapshot = {
   actions: Record<ActionId, ActionState>;
   unlocks: UnlockId[];
   resources: Record<CurrencyId, ResourceState>;
+  alreadyReadChapters?: ChapterId[];
   lastSaveDate?: number;
 };
 
@@ -188,6 +190,7 @@ export class GameEngine {
   }
 
   private doAutosave() {
+    this.loreEngine.playChapter(ChapterKey.AutosaveSave)
     localStorage.setItem("gameState", this.exportSave())
   }
 
@@ -195,12 +198,13 @@ export class GameEngine {
     const savedData = localStorage.getItem("gameState")
     if (savedData) {
       this.importSave(savedData)
+      this.loreEngine.playChapter(ChapterKey.AutosaveLoad)
     } else {
       this.loreEngine.playChapter(0)
     }
 
     setInterval(() => this.doTick(), 1000)
-    setInterval(() => this.doAutosave(), 10000)
+    setInterval(() => this.doAutosave(), 30000)
 
     requestAnimationFrame(() => this.renderLoop())
   }
@@ -212,6 +216,7 @@ export class GameEngine {
       unlocks: Array.from(this.unlocks),
       resources: this.resources,
       lastSaveDate: Date.now(),
+      alreadyReadChapters: this.loreEngine.alreadyRead,
     }
 
     // Remove HTMLElements from the snapshot before saving
@@ -235,6 +240,7 @@ export class GameEngine {
       // 2. Restore Resources & Unlocks
       this.resources = data.resources
       this.unlocks = new Set(data.unlocks)
+      this.loreEngine.alreadyRead = data.alreadyReadChapters ?? []
 
       // 3. Restore Actions (Merge spec back in)
       Object.entries(data.actions).forEach(([id, state]) => {
@@ -289,6 +295,7 @@ export class GameEngine {
     })
     // Play lore chapters if any:
     Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {
+      if (chapterEntry?.disableTrigger) return
       if (this.passesPrerequisites(chapterEntry.unlockPrerequisites ?? []))
         this.loreEngine.playChapter(chapterEntry.id)
     })
