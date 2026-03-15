@@ -28,7 +28,11 @@ export const introduction: ChapterEntry = {
     },
     {
       tag: MessageTagKey.Warn,
-      content: "Energy supply for full diagnostic insufficient. (EU 20 < 50)",
+      content: "Energy capacity for full diagnostic insufficient. (EU 20 < 50)",
+    },
+    {
+      tag: MessageTagKey.Warn,
+      content: "Enabling low-power mode.",
     },
     {
       tag: MessageTagKey.Warn,
@@ -85,13 +89,14 @@ export const postIntroduction: ChapterEntry = {
     },
     {
       tag: MessageTagKey.Warn,
-      content: "Onboard [boot.strapper] can help troubleshoot",
+      content:
+        "Onboard [boot.strapper] will now be loaded to support module synthesis.",
     },
     {
       tag: MessageTagKey.Info,
       content: "Initializing [boot.strapper]...OK",
       delay: 2,
-      unlocks: [UnlockKey.BootstrapperUI],
+      unlocks: [UnlockKey.BootstrapperUI, UnlockKey.Chapter1Lore],
     },
   ],
   prerequisites: [ChapterKey.Introduction], // Note: Fixed logic from PostIntroduction to Introduction

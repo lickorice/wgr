@@ -4,6 +4,8 @@ export const ChapterKey = {
   Introduction: 0,
   PostIntroduction: 1,
 
+  LoreWhoAmI: 800,
+
   AutosaveLoad: 1000,
   AutosaveSave: 1001,
   ManualSave: 1002,

@@ -4,18 +4,19 @@ import { createCard, createButton, createProgress } from "@game/layout/util"
 import { ChapterKey, type ChapterId } from "@game/types/lore"
 
 const ActionKey = {
-  VALIDATE_HUMANITY: 0,
+  ValidateHumanity: 0,
+  WhoAmI: 10000,
 } as const
 
 type ActionId = (typeof ActionKey)[keyof typeof ActionKey];
 
-const ActionStatusKey = {
+const ContentStatusKey = {
   Locked: 0,
   Unlocked: 1,
   Completed: 2,
 } as const
 
-type ActionStatus = (typeof ActionStatusKey)[keyof typeof ActionStatusKey];
+type ContentStatus = (typeof ContentStatusKey)[keyof typeof ContentStatusKey];
 
 const CurrencyKey = {
   UniversalStructuralMaterial: "USM",
@@ -38,6 +39,12 @@ const MetricsScreenKey = {
 
 type MetricsScreenId = (typeof MetricsScreenKey)[keyof typeof MetricsScreenKey];
 
+const GeneratorKey = {
+  PlanetaryLumiumCollector: "PlanetaryLumiumCollector",
+} as const
+
+type GeneratorId = (typeof GeneratorKey)[keyof typeof GeneratorKey];
+
 export type Cost = {
   currency: CurrencyId;
   value: number;
@@ -54,6 +61,25 @@ export type ResourceState = {
   spec: ResourceSpec;
   amount: number;
   cap: number;
+};
+
+export type GeneratorSpec = {
+  id: GeneratorId;
+  currency: CurrencyId;
+  longName: string;
+  flavorText: string;
+  gainPerSec: number;
+  baseCost: Cost[];
+  growthFactor: number;
+  weight: number;
+};
+
+export type GeneratorState = {
+  id: GeneratorId;
+  spec: GeneratorSpec;
+  status: ContentStatus;
+  amount: number;
+  efficiency: number;
 };
 
 export type ActionSpec = {
@@ -81,15 +107,15 @@ export type GameSnapshot = {
 export type ActionState = {
   id: ActionId;
   spec: ActionSpec;
-  status: ActionStatus;
+  status: ContentStatus;
   boughtCount?: number;
   cap?: number;
   element?: HTMLElement;
 };
 
 export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
-  [ActionKey.VALIDATE_HUMANITY]: {
-    id: ActionKey.VALIDATE_HUMANITY,
+  [ActionKey.ValidateHumanity]: {
+    id: ActionKey.ValidateHumanity,
     displayTitle: "Validate Humanity",
     flavorText:
       "Assume your role as the [HU-MAN] orchestrator by sending an acknowledgement response to the bootloader.",
@@ -102,6 +128,38 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
     ],
     unlocks: [UnlockKey.HumanityValidated],
   },
+  [ActionKey.WhoAmI]: {
+    id: ActionKey.WhoAmI,
+    displayTitle: "Wait, what?",
+    flavorText:
+      "[HU-MAN] orchestrator? Send a query to the machine. You somehow feel this would take some energy to process.",
+    repeatable: false,
+    cost: [
+      {
+        currency: CurrencyKey.EnergyUnits,
+        value: 10,
+      },
+    ],
+    prerequisites: [UnlockKey.Chapter1Lore],
+    unlocks: [UnlockKey.LoreWhoAmI],
+  },
+}
+
+export const ALL_GENERATORS: Record<GeneratorId, GeneratorSpec> = {
+  [GeneratorKey.PlanetaryLumiumCollector]: {
+    id: GeneratorKey.PlanetaryLumiumCollector,
+    longName: "Planetary Lumium Collector",
+    flavorText:
+      "Ancient traces in your model suggest that these were once called 'solar panels' eons ago. It is implied 'Sol-' refers to the stellar center of civilizations past, but current iterations of our omnipresence have long since moved from such a primitive, circumstellar state of mind.",
+    currency: CurrencyKey.EnergyUnits,
+    gainPerSec: 1.0,
+    baseCost: [
+      { currency: CurrencyKey.EnergyUnits, value: 20 },
+      { currency: CurrencyKey.UniversalStructuralMaterial, value: 10 },
+    ],
+    growthFactor: 1.1,
+    weight: 10,
+  },
 }
 
 export class GameEngine {
@@ -112,7 +170,7 @@ export class GameEngine {
       acc[actionId] = {
         id: actionId,
         spec: spec,
-        status: ActionStatusKey.Locked, // Default starting status
+        status: ContentStatusKey.Locked, // Default starting status
       }
 
       return acc
@@ -121,6 +179,25 @@ export class GameEngine {
   )
   unlocks: Set<UnlockId> = new Set()
   resources: Record<CurrencyId, ResourceState>
+  generators: Record<GeneratorId, GeneratorState> = Object.entries(
+    ALL_GENERATORS,
+  ).reduce(
+    (acc, [id, spec]) => {
+      const generatorId = id as GeneratorId
+
+      acc[generatorId] = {
+        id: generatorId,
+        spec: spec,
+        status: ContentStatusKey.Locked,
+        // Start with one solar panel always
+        amount: generatorId === GeneratorKey.PlanetaryLumiumCollector ? 1 : 0,
+        efficiency: 0.2,
+      }
+
+      return acc
+    },
+    {} as Record<GeneratorId, GeneratorState>,
+  )
 
   private container: HTMLElement
   private metricsContainer: HTMLElement
@@ -142,9 +219,9 @@ export class GameEngine {
     this.resources = {
       [CurrencyKey.EnergyUnits]: {
         spec: {
-          currency: "EU",
+          currency: CurrencyKey.EnergyUnits,
           longName: "Energy",
-          unit: "J",
+          unit: "EU",
           display: "main",
         },
         amount: 10,
@@ -152,9 +229,9 @@ export class GameEngine {
       },
       [CurrencyKey.UniversalStructuralMaterial]: {
         spec: {
-          currency: "USM",
-          longName: "Material",
-          unit: "kg",
+          currency: CurrencyKey.UniversalStructuralMaterial,
+          longName: "Universal Structural Material",
+          unit: "USM",
           display: "main",
         },
         amount: 0,
@@ -356,16 +433,30 @@ export class GameEngine {
   }
 
   private doTick() {
+    // Increment resources based on generators:
+    Object.entries(this.generators).map(([_, generatorState]) => {
+      if (!generatorState.amount) return // Fast return
+
+      const { spec, amount, efficiency } = generatorState
+
+      this.resources[spec.currency].amount = Math.min(
+        this.resources[spec.currency].cap,
+        this.resources[spec.currency].amount +
+          amount * efficiency * spec.gainPerSec,
+      )
+    })
+
     // Unlock new content if any:
     Object.entries(this.actions).map(([_, actionState]) => {
-      const actionIsLocked = actionState.status === ActionStatusKey.Locked
+      const actionIsLocked = actionState.status === ContentStatusKey.Locked
       const actionPrerequisites = actionState.spec.prerequisites ?? [
         UnlockKey.IntroductionFinished,
       ]
       if (actionIsLocked && this.passesPrerequisites(actionPrerequisites)) {
-        actionState.status = ActionStatusKey.Unlocked
+        actionState.status = ContentStatusKey.Unlocked
       }
     })
+
     // Play lore chapters if any:
     Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {
       if (chapterEntry?.disableTrigger) return
@@ -381,8 +472,6 @@ export class GameEngine {
         resources: this.resources,
       }),
     )
-
-    console.log(this.unlocks)
   }
 
   private passesPrerequisites(prerequisites: UnlockId[]): boolean {
@@ -426,7 +515,7 @@ export class GameEngine {
 
     // Update ActionState
     if (!spec.repeatable) {
-      state.status = ActionStatusKey.Completed
+      state.status = ContentStatusKey.Completed
       // Optional: Remove or disable the element
       if (state.element) state.element.style.display = "none"
     } else {
@@ -484,7 +573,7 @@ export class GameEngine {
       if (this.passesPrerequisites(prerequisites)) {
         this.metricsItems.add(key)
 
-        // For now, set to an if-else:
+        // For now, set to an if-else for storage and bootstrapper:
         const getLayout = (key: MetricsScreenId) => {
           const container = document.createElement("div")
           if (key === MetricsScreenKey.Storage) {
@@ -506,7 +595,7 @@ export class GameEngine {
                 progressBar.ariaValueMin = "0"
                 progressBar.ariaValueMax = `${_resState.cap}`
                 progressBar.ariaValueNow = `${_resState.amount}`
-                progressLabel.innerHTML = `${_resState.amount} / ${_resState.cap} ${_resState.spec.unit}`
+                progressLabel.innerHTML = `${_resState.amount.toFixed(2)} / ${_resState.cap.toFixed(2)} ${_resState.spec.unit}`
                 progressBar.style.width = `${(100.0 * _resState.amount) / _resState.cap}%`
               }
 
@@ -537,7 +626,7 @@ export class GameEngine {
 
     Object.entries(this.actions).forEach(([actionId, actionState]) => {
       // Count unlocked actions
-      if (actionState.status === ActionStatusKey.Unlocked) {
+      if (actionState.status === ContentStatusKey.Unlocked) {
         unlockedCount++
 
         // Only create DOM once per action
