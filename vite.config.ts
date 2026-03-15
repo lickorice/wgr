@@ -8,4 +8,17 @@ export default defineConfig({
       "@game": path.resolve(__dirname, "./src/game"),
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        quietDeps: true, // This silences warnings from node_modules
+        silenceDeprecations: [
+          "import",
+          "color-functions",
+          "global-builtin",
+          "if-function",
+        ],
+      },
+    },
+  },
 })

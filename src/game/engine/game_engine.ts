@@ -22,6 +22,20 @@ const CurrencyKey = {
 
 type CurrencyId = (typeof CurrencyKey)[keyof typeof CurrencyKey];
 
+const MenuBarKey = {
+  Actions: "Actions",
+  Settings: "Settings",
+} as const
+
+type MenuBarId = (typeof MenuBarKey)[keyof typeof MenuBarKey];
+
+const MetricsScreenKey = {
+  Storage: "Storage",
+  Bootstrapper: "Bootstrapper",
+} as const
+
+type MetricsScreenId = (typeof MetricsScreenKey)[keyof typeof MetricsScreenKey];
+
 export type Cost = {
   currency: CurrencyId;
   value: number;
@@ -48,7 +62,16 @@ export type ActionSpec = {
   cost: Cost[];
   // Will always wait for IntroductionFinished, regardless if this is defined.
   prerequisites?: UnlockId[];
-  effect?: () => void;
+  // Shorthand for UnlockId unlocks, no need to implement custom effect
+  unlocks?: UnlockId[];
+  // Custom effects that pass in a GameSnapshot
+  effect?: (game_snapshot: GameSnapshot) => void;
+};
+
+export type GameSnapshot = {
+  actions: Record<ActionId, ActionState>;
+  unlocks: Set<UnlockId>;
+  resources: Record<CurrencyId, ResourceState>;
 };
 
 export type ActionState = {
@@ -73,6 +96,7 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
         value: 1,
       },
     ],
+    unlocks: [UnlockKey.HumanityValidated],
   },
 }
 
@@ -95,11 +119,18 @@ export class GameEngine {
   resources: Record<CurrencyId, ResourceState>
 
   private container: HTMLElement
+  private metricsContainer: HTMLElement
+  private primaryContainer: HTMLElement
   private menuBar: HTMLElement
+  private metricsItems: Set<MetricsScreenId> = new Set()
+  private menuBarItems: Set<MenuBarId> = new Set()
+  private currentMenuBar: MenuBarId = MenuBarKey.Actions
   private actionsContainer: HTMLElement
   // private activeProgress: Map<ActionId, number> = new Map(); // Tracks 0-100% for bars
 
   private loreEngine: LoreEngine
+
+  private gameLogicUI: ((snapshot: GameSnapshot) => void)[] = []
 
   constructor(containerId: string) {
     // Initialize resources (assuming starting values)
@@ -112,7 +143,7 @@ export class GameEngine {
           display: "main",
         },
         amount: 10,
-        cap: 100,
+        cap: 20,
       },
       [CurrencyKey.UniversalStructuralMaterial]: {
         spec: {
@@ -131,12 +162,22 @@ export class GameEngine {
     const terminal = document.createElement("div")
     terminal.id = "terminal-container"
     this.container.appendChild(terminal)
-    this.menuBar = document.createElement("div")
+    this.menuBar = document.createElement("nav")
+    this.menuBar.className = "nav nav-pills nav-justified my-2"
     this.menuBar.id = "menu-bar"
     this.container.appendChild(this.menuBar)
     this.actionsContainer = document.createElement("div")
     this.actionsContainer.id = "actions-container"
-    this.container.appendChild(this.actionsContainer)
+    this.primaryContainer = document.createElement("div")
+    this.primaryContainer.id = "primary-container"
+    this.metricsContainer = document.createElement("div")
+    this.metricsContainer.id = "metrics-container"
+
+    this.container.appendChild(this.metricsContainer)
+    this.container.appendChild(this.primaryContainer)
+    // Set initial panel
+    this.currentMenuBar = MenuBarKey.Actions
+    this.setActiveContainer(MenuBarKey.Actions)
 
     // Sub-engine init:
     this.loreEngine = new LoreEngine("terminal-container", (u: UnlockId) => {
@@ -145,13 +186,17 @@ export class GameEngine {
   }
 
   public start() {
-    this.loreEngine.playChapter(0).then(() => {
-      console.log("fin")
-    })
+    this.loreEngine.playChapter(0)
 
     setInterval(() => this.doTick(), 1000)
 
     requestAnimationFrame(() => this.renderLoop())
+  }
+
+  public exportSave() {}
+
+  public importSave(gameSaveStr: string) {
+    console.log(gameSaveStr)
   }
 
   private doTick() {
@@ -165,19 +210,171 @@ export class GameEngine {
         actionState.status = ActionStatusKey.Unlocked
       }
     })
+    // Play lore chapters if any:
+    Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {
+      if (this.passesPrerequisites(chapterEntry.unlockPrerequisites ?? []))
+        this.loreEngine.playChapter(chapterEntry.id)
+    })
 
-    console.log(this.actions)
+    // Finally, render everything in gameLogicUI:
+    this.gameLogicUI.map((func) =>
+      func({
+        actions: this.actions,
+        unlocks: this.unlocks,
+        resources: this.resources,
+      }),
+    )
+
+    console.log(this.unlocks)
   }
 
   private passesPrerequisites(prerequisites: UnlockId[]): boolean {
     return !prerequisites.some((p) => !this.unlocks.has(p))
   }
 
-  private renderLoop() {
-    // Render actions container if unlocked
-    if (this.passesPrerequisites([UnlockKey.ActionsUI])) {
-      this.menuBar.innerHTML = "ACTIONS"
+  private affordCost(cost: Cost[]): boolean {
+    return cost.every((c) => this.resources[c.currency].amount >= c.value)
+  }
+
+  private deductCost(cost: Cost[]): void {
+    cost.forEach((c) => {
+      this.resources[c.currency].amount -= c.value
+    })
+  }
+
+  private performAction(actionId: ActionId) {
+    const state = this.actions[actionId]
+    const spec = state.spec
+
+    if (!this.affordCost(spec.cost)) {
+      console.log("Not enough resources!")
+      return
     }
+
+    this.deductCost(spec.cost)
+
+    // Apply simple UnlockIds:
+    if (spec.unlocks) {
+      spec.unlocks.forEach((u) => this.unlocks.add(u))
+    }
+
+    // Run custom effect if available
+    if (spec.effect) {
+      spec.effect({
+        actions: this.actions,
+        unlocks: this.unlocks,
+        resources: this.resources,
+      })
+    }
+
+    // Update ActionState
+    if (!spec.repeatable) {
+      state.status = ActionStatusKey.Completed
+      // Optional: Remove or disable the element
+      if (state.element) state.element.style.display = "none"
+    } else {
+      state.boughtCount = (state.boughtCount || 0) + 1
+    }
+  }
+
+  private renderMenuBar() {
+    const MENU_BAR_LOOKUP: Record<MenuBarId, UnlockId[]> = {
+      [MenuBarKey.Actions]: [UnlockKey.ActionsUI],
+      [MenuBarKey.Settings]: [UnlockKey.SettingsUI],
+    }
+
+    const primaryNavClasses = "primary-nav nav-item nav-link"
+    const primaryNavActive = `${primaryNavClasses} active`
+
+    Object.entries(MENU_BAR_LOOKUP).map(([_key, prerequisites]) => {
+      const key = _key as MenuBarId
+      if (this.menuBarItems.has(key)) return
+      if (this.passesPrerequisites(prerequisites)) {
+        this.menuBarItems.add(key)
+
+        const menuBarButton = document.createElement("a")
+        menuBarButton.onclick = () => {
+          this.currentMenuBar = key
+          this.setActiveContainer(key)
+
+          const allMenuLinks = document.querySelectorAll(".primary-nav")
+          allMenuLinks.forEach((o) => o.classList.remove("active"))
+
+          menuBarButton.className = primaryNavActive
+        }
+        menuBarButton.href = "#"
+        if (this.currentMenuBar === key) {
+          menuBarButton.className = primaryNavActive
+        } else {
+          menuBarButton.className = primaryNavClasses
+        }
+        menuBarButton.innerHTML = key
+
+        this.menuBar.appendChild(menuBarButton)
+      }
+    })
+  }
+
+  private renderMetricsScreen() {
+    const METRIC_SCREEN_LOOKUP: Record<MetricsScreenId, UnlockId[]> = {
+      [MetricsScreenKey.Storage]: [UnlockKey.StorageUI],
+      [MetricsScreenKey.Bootstrapper]: [UnlockKey.BootstrapperUI],
+    }
+
+    Object.entries(METRIC_SCREEN_LOOKUP).map(([_key, prerequisites]) => {
+      const key = _key as MetricsScreenId
+      if (this.metricsItems.has(key)) return
+      if (this.passesPrerequisites(prerequisites)) {
+        this.metricsItems.add(key)
+
+        // For now, set to an if-else:
+        const getLayout = (key: MetricsScreenId) => {
+          const container = document.createElement("div")
+          if (key === MetricsScreenKey.Storage) {
+            Object.entries(this.resources).map(([_resKey, resState]) => {
+              const resKey = _resKey as CurrencyId
+
+              const progressContainer = document.createElement("div")
+              progressContainer.className = "progress position-relative"
+
+              const containerTitle = document.createElement("h5")
+              containerTitle.innerHTML = resState.spec.longName
+
+              const progressBar = document.createElement("div")
+              progressBar.className = "progress-bar"
+              progressBar.role = "progressbar"
+              progressBar.id = `metrics-progress-${resKey}`
+
+              const progressLabel = document.createElement("small")
+              progressLabel.className =
+                "justify-content-center d-flex position-absolute w-100"
+
+              const updateProgressBar = (gameSnapshot: GameSnapshot) => {
+                const _resState = gameSnapshot.resources[resKey]
+                progressBar.ariaValueMin = "0"
+                progressBar.ariaValueMax = `${_resState.cap}`
+                progressBar.ariaValueNow = `${_resState.amount}`
+                progressLabel.innerHTML = `${_resState.amount} / ${_resState.cap} ${_resState.spec.unit}`
+                progressBar.style.width = `${(100.0 * _resState.amount) / _resState.cap}%`
+              }
+
+              progressContainer.appendChild(progressBar)
+              progressContainer.appendChild(progressLabel)
+              container.appendChild(containerTitle)
+              container.appendChild(progressContainer)
+
+              this.gameLogicUI.push(updateProgressBar)
+            })
+          } else {
+          }
+          return container
+        }
+        this.metricsContainer.appendChild(getLayout(key))
+      }
+    })
+  }
+
+  private renderActionsScreen() {
     // Render individual actions
     Object.entries(this.actions).map(([actionId, actionState]) => {
       // -- Add newly unlocked actions
@@ -186,15 +383,33 @@ export class GameEngine {
         !actionState.element
       ) {
         const actionsCard = document.createElement("div")
-        const actionsTitle = document.createElement("div")
+        const actionsCardBody = document.createElement("div")
+        const actionsTitle = document.createElement("h5")
+        actionsCard.className = "card"
+        actionsCardBody.className = "card-body"
+        actionsTitle.className = "card-title"
         actionsTitle.innerHTML = actionState.spec.displayTitle
-        actionsCard.appendChild(actionsTitle)
+
+        const buyButton = document.createElement("button")
+        const costText = actionState.spec.cost
+          .map((c) => `${c.value} ${c.currency}`)
+          .join(", ")
+        buyButton.innerText = `Execute (${costText})`
+
+        buyButton.onclick = () =>
+          this.performAction(actionId as unknown as ActionId)
+
+        actionsCardBody.appendChild(actionsTitle)
 
         if (actionState.spec.flavorText) {
           const actionsFlavorText = document.createElement("div")
+          actionsFlavorText.className = "card-text"
           actionsFlavorText.innerHTML = actionState.spec.flavorText
-          actionsCard.appendChild(actionsFlavorText)
+          actionsCardBody.appendChild(actionsFlavorText)
         }
+
+        actionsCardBody.appendChild(buyButton)
+        actionsCard.appendChild(actionsCardBody)
 
         actionsCard.id = `action-${actionId}`
 
@@ -202,6 +417,30 @@ export class GameEngine {
         actionState.element = actionsCard
       }
     })
+  }
+
+  private setActiveContainer(menuBarId: MenuBarId) {
+    const MENU_BAR_MAP: Record<MenuBarId, HTMLElement> = {
+      [MenuBarKey.Actions]: this.actionsContainer,
+      [MenuBarKey.Settings]: this.actionsContainer,
+    }
+
+    this.primaryContainer.innerHTML = ""
+    this.primaryContainer.appendChild(MENU_BAR_MAP[menuBarId])
+  }
+
+  private renderLoop() {
+    // Render actions container if unlocked
+    this.renderMenuBar()
+    // Render metrics
+    this.renderMetricsScreen()
+
+    // Only selective render what's shown
+    switch (this.currentMenuBar) {
+      case MenuBarKey.Actions:
+        this.renderActionsScreen()
+        break
+    }
 
     requestAnimationFrame(() => this.renderLoop())
   }

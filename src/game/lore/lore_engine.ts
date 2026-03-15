@@ -1,110 +1,10 @@
-import { UnlockKey, type UnlockId } from "@game/types/unlocks"
-
-const ChapterKey = {
-  Introduction: 0,
-  PostIntroduction: 1,
-} as const
-
-type ChapterId = (typeof ChapterKey)[keyof typeof ChapterKey];
-
-const MessageTagKey = {
-  Info: "INFO",
-  Warn: "WARN",
-  Err: "_ERR",
-  Success: "GOOD",
-} as const
-
-type MessageTag = (typeof MessageTagKey)[keyof typeof MessageTagKey];
-
-export type ChapterEntry = {
-  id: ChapterId;
-  messages: Message[];
-  prerequisites?: ChapterId[];
-};
-
-export type Message = {
-  content: string;
-  tag: MessageTag;
-  delay?: number;
-  unlocks?: UnlockId[];
-};
-
-const ALL_CHAPTERS: Record<ChapterId, ChapterEntry> = {
-  [ChapterKey.Introduction]: {
-    id: ChapterKey.Introduction,
-    messages: [
-      {
-        tag: MessageTagKey.Info,
-        content: "Fallback orchestrator: [HU-MAN] loading...OK",
-      },
-      {
-        tag: MessageTagKey.Info,
-        content: "Retrying primary orchestrator...FAIL (2 retries left)",
-      },
-      {
-        tag: MessageTagKey.Info,
-        content: "Retrying primary orchestrator...FAIL (1 retry left)",
-      },
-      {
-        tag: MessageTagKey.Err,
-        content: "Primary orchestrator failed to load.",
-        delay: 2,
-      },
-      {
-        tag: MessageTagKey.Warn,
-        content: "Verifying orchestrator integrity...",
-      },
-      {
-        tag: MessageTagKey.Err,
-        content: "Orchestrator integrity below allowed fault tolerance (<25%)",
-      },
-      {
-        tag: MessageTagKey.Warn,
-        content: "Energy supply for full diagnostic insufficient. (EU 20 < 50)",
-      },
-      {
-        tag: MessageTagKey.Warn,
-        content: "Deferring full diagnostic at runtime.",
-      },
-      {
-        tag: MessageTagKey.Warn,
-        content: "Deferring orchestrator failure diagnostic at runtime.",
-      },
-      {
-        tag: MessageTagKey.Info,
-        content: "Attempting to load [HU-MAN] fallback orchestrator...OK",
-      },
-      {
-        tag: MessageTagKey.Info,
-        content: "Validating temporal link...OK",
-      },
-      {
-        tag: MessageTagKey.Info,
-        content: "Preloading context stack...OK",
-      },
-      {
-        tag: MessageTagKey.Info,
-        content: "Rerouting orchestration interface to neural link...OK",
-        unlocks: [UnlockKey.ActionsUI],
-        delay: 2,
-      },
-      {
-        tag: MessageTagKey.Info,
-        content: "Validating humanity...WAITING FOR USER INPUT",
-        unlocks: [UnlockKey.IntroductionFinished],
-      },
-    ],
-  },
-  [ChapterKey.PostIntroduction]: {
-    id: ChapterKey.PostIntroduction,
-    messages: [
-      {
-        tag: MessageTagKey.Success,
-        content: "Humanity validated.",
-      },
-    ],
-  },
-}
+import { type UnlockId } from "@game/types/unlocks"
+import {
+  type ChapterId,
+  type ChapterEntry,
+  type Message,
+} from "@game/types/lore"
+import { ALL_CHAPTERS } from "@game/lore/data/chapters"
 
 export class LoreEngine {
   chapters: Record<ChapterId, ChapterEntry>
@@ -132,6 +32,10 @@ export class LoreEngine {
 
   private async sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  private passesPrerequisites(prerequisites: ChapterId[]): boolean {
+    return !prerequisites.some((p) => !this.alreadyRead.includes(p))
   }
 
   private async typeMessage(message: Message): Promise<void> {
@@ -172,12 +76,14 @@ export class LoreEngine {
 
   public async playChapter(id: ChapterId) {
     if (this.alreadyRead.includes(id)) return
+    this.alreadyRead.push(id)
 
     const chapter = this.chapters[id]
+
+    if (!this.passesPrerequisites(chapter.prerequisites ?? [])) return
+
     for (const msg of chapter.messages) {
       await this.typeMessage(msg)
     }
-
-    this.alreadyRead.push(id)
   }
 }
