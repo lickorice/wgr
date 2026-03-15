@@ -75,10 +75,13 @@ export class LoreEngine {
   }
 
   public async playChapter(id: ChapterId) {
-    if (this.alreadyRead.includes(id)) return
-    this.alreadyRead.push(id)
-
     const chapter = this.chapters[id]
+
+    if (this.alreadyRead.includes(id)) {
+      if (!chapter.repeatable) return
+    } else {
+      this.alreadyRead.push(id)
+    }
 
     if (!this.passesPrerequisites(chapter.prerequisites ?? [])) return
 

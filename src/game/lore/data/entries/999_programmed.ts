@@ -3,6 +3,7 @@ import { ChapterKey, type ChapterEntry, MessageTagKey } from "@game/types/lore"
 export const autosaveLoad: ChapterEntry = {
   id: ChapterKey.AutosaveLoad,
   disableTrigger: true,
+  repeatable: true,
   messages: [
     { tag: MessageTagKey.Meta, content: "Autosave loaded." },
     {
@@ -15,6 +16,7 @@ export const autosaveLoad: ChapterEntry = {
 export const autosaveSave: ChapterEntry = {
   id: ChapterKey.AutosaveSave,
   disableTrigger: true,
+  repeatable: true,
   messages: [
     { tag: MessageTagKey.Meta, content: "Game autosaved." },
     {
@@ -27,6 +29,7 @@ export const autosaveSave: ChapterEntry = {
 export const manualSave: ChapterEntry = {
   id: ChapterKey.AutosaveSave,
   disableTrigger: true,
+  repeatable: true,
   messages: [
     { tag: MessageTagKey.Meta, content: "Game saved." },
     {

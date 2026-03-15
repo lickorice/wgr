@@ -3,16 +3,19 @@ export function createCard(title: string, flavorText?: string) {
   const cardBody = document.createElement("div")
   const titleEl = document.createElement("h5")
 
-  card.className = "card"
+  // Action-specific card class for targeted styling
+  card.className = "card mb-2 action-card"
   cardBody.className = "card-body"
-  titleEl.className = "card-title"
+  // Use a compact heading suitable for small screens
+  titleEl.className = "card-title h6"
   titleEl.innerHTML = title
 
   cardBody.appendChild(titleEl)
 
   if (flavorText) {
     const flavor = document.createElement("div")
-    flavor.className = "card-text"
+    // subtle, compact flavor text
+    flavor.className = "card-text text-muted small"
     flavor.innerHTML = flavorText
     cardBody.appendChild(flavor)
   }
@@ -22,9 +25,15 @@ export function createCard(title: string, flavorText?: string) {
   return { card, body: cardBody, titleEl }
 }
 
-export function createButton(text: string, onClick?: () => void) {
+export function createButton(
+  text: string,
+  onClick?: () => void,
+  className?: string,
+) {
   const btn = document.createElement("button")
   btn.innerText = text
+  // Default consistent button styling; callers can override via className
+  btn.className = className ?? "btn btn-sm btn-outline-light"
   if (onClick) btn.onclick = onClick
   return btn
 }
@@ -34,7 +43,7 @@ export function createProgress() {
   container.className = "progress position-relative"
 
   const progressBar = document.createElement("div")
-  progressBar.className = "progress-bar"
+  progressBar.className = "progress-bar bg-success"
   progressBar.setAttribute("role", "progressbar")
 
   const progressLabel = document.createElement("small")

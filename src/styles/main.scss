@@ -71,3 +71,100 @@ body {
   /* Optional: Add a slight scanline jitter during fade */
   text-shadow: 0 0 2px rgba(105, 240, 174, 0.2);
 }
+
+/* Layout refinements */
+
+/* Main containers separation */
+#metrics-container {
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: rgba(255,255,255,0.01);
+}
+
+#menu-bar {
+    margin: 8px 0;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.02);
+}
+
+#primary-container {
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 12px;
+    border-radius: 6px;
+    min-height: 120px;
+    background: rgba(0,0,0,0.02);
+}
+
+/* Actions container explicit styling and empty placeholder */
+#actions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 80px;
+    padding: 6px;
+}
+
+#actions-empty {
+    color: #9aa0a6;
+    text-align: center;
+    border: 1px dashed rgba(255,255,255,0.03);
+    padding: 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.005);
+}
+
+/* Action card tweaks */
+.action-card {
+    transition: box-shadow 120ms ease-in-out, transform 120ms ease;
+}
+.action-card:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    transform: translateY(-2px);
+}
+.action-card .card-title {
+    margin-bottom: 6px;
+}
+.action-card .card-text {
+    margin-bottom: 8px;
+}
+
+/* Controls inside card: make the button flush-right on small screens */
+.action-card-controls {
+    width: 100%;
+}
+
+/* Menu link tweak to match the theme */
+.primary-nav {
+    color: #d1d1d1;
+    padding: 8px 10px;
+    border-radius: 4px;
+}
+.primary-nav.active {
+    background: rgba(105,240,174,0.08);
+    color: #69f0ae;
+    box-shadow: none;
+}
+
+/* Progress tweaks: make label readable */
+.progress {
+    height: 28px;
+}
+.progress-bar {
+    transition: width 300ms ease;
+}
+.progress small {
+    line-height: 28px;
+    font-size: 12px;
+    color: #f1f1f1;
+}
+
+/* Make sure terminal and panels are visually separated on small screens */
+@media (max-width: 576px) {
+    #terminal-container { padding: 12px; }
+    .action-card .card-body { padding: 8px; }
+    .primary-nav { padding: 6px 8px; font-size: 14px; }
+}

@@ -510,6 +510,10 @@ export class GameEngine {
                 progressBar.style.width = `${(100.0 * _resState.amount) / _resState.cap}%`
               }
 
+              if (resKey !== Object.keys(this.resources)[0]) {
+                containerTitle.className = "mt-2"
+              }
+
               container.appendChild(containerTitle)
               container.appendChild(progressContainer)
 
@@ -525,34 +529,63 @@ export class GameEngine {
   }
 
   private renderActionsScreen() {
-    // Render individual actions
-    Object.entries(this.actions).map(([actionId, actionState]) => {
-      // -- Add newly unlocked actions
-      if (
-        actionState.status === ActionStatusKey.Unlocked &&
-        !actionState.element
-      ) {
-        const { card: actionsCard, body: actionsCardBody } = createCard(
-          actionState.spec.displayTitle,
-          actionState.spec.flavorText,
-        )
+    if (!this.passesPrerequisites([UnlockKey.ActionsUI])) return
+    // Render individual actions and ensure a visible empty placeholder
+    const existingPlaceholder =
+      this.actionsContainer.querySelector("#actions-empty")
+    let unlockedCount = 0
 
-        const costText = actionState.spec.cost
-          .map((c) => `${c.value} ${c.currency}`)
-          .join(", ")
+    Object.entries(this.actions).forEach(([actionId, actionState]) => {
+      // Count unlocked actions
+      if (actionState.status === ActionStatusKey.Unlocked) {
+        unlockedCount++
 
-        const buyButton = createButton(`Execute (${costText})`, () =>
-          this.performAction(Number(actionId) as ActionId),
-        )
+        // Only create DOM once per action
+        if (!actionState.element) {
+          const { card: actionsCard, body: actionsCardBody } = createCard(
+            actionState.spec.displayTitle,
+            actionState.spec.flavorText,
+          )
 
-        actionsCardBody.appendChild(buyButton)
+          const costText = actionState.spec.cost
+            .map((c) => `${c.value} ${c.currency}`)
+            .join(", ")
 
-        actionsCard.id = `action-${actionId}`
+          const buyButton = createButton(
+            `Execute (${costText})`,
+            () => this.performAction(Number(actionId) as ActionId),
+            // stronger visual affordance for action buttons
+            "btn btn-sm btn-primary",
+          )
 
-        this.actionsContainer.append(actionsCard)
-        actionState.element = actionsCard
+          // Wrap controls so the button can be flushed to the right for mobile ergonomics
+          const controls = document.createElement("div")
+          controls.className =
+            "action-card-controls d-flex justify-content-end mt-2"
+          controls.appendChild(buyButton)
+
+          actionsCardBody.appendChild(controls)
+
+          actionsCard.id = `action-${actionId}`
+
+          this.actionsContainer.append(actionsCard)
+          actionState.element = actionsCard
+        }
       }
     })
+
+    // If there are no unlocked actions, show a visible, tangible empty state
+    if (unlockedCount === 0) {
+      if (!existingPlaceholder) {
+        const placeholder = document.createElement("div")
+        placeholder.id = "actions-empty"
+        placeholder.className = "text-muted small p-2"
+        placeholder.innerText = "No actions are currently doable."
+        this.actionsContainer.appendChild(placeholder)
+      }
+    } else if (existingPlaceholder) {
+      existingPlaceholder.remove()
+    }
   }
 
   private setActiveContainer(menuBarId: MenuBarId) {
