@@ -23,3 +23,15 @@ export const autosaveSave: ChapterEntry = {
     },
   ],
 }
+
+export const manualSave: ChapterEntry = {
+  id: ChapterKey.AutosaveSave,
+  disableTrigger: true,
+  messages: [
+    { tag: MessageTagKey.Meta, content: "Game saved." },
+    {
+      tag: MessageTagKey.Info,
+      content: "Invoked manual system safety replication.",
+    },
+  ],
+}

@@ -6,6 +6,7 @@ export const ChapterKey = {
 
   AutosaveLoad: 1000,
   AutosaveSave: 1001,
+  ManualSave: 1002,
 } as const
 
 export type ChapterId = (typeof ChapterKey)[keyof typeof ChapterKey];

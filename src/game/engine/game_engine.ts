@@ -130,6 +130,7 @@ export class GameEngine {
   private menuBarItems: Set<MenuBarId> = new Set()
   private currentMenuBar: MenuBarId = MenuBarKey.Actions
   private actionsContainer: HTMLElement
+  private settingsContainer: HTMLElement
   // private activeProgress: Map<ActionId, number> = new Map() // Tracks 0-100% for bars
 
   private loreEngine: LoreEngine
@@ -176,6 +177,9 @@ export class GameEngine {
     this.metricsContainer = document.createElement("div")
     this.metricsContainer.id = "metrics-container"
 
+    this.settingsContainer = document.createElement("div")
+    this.settingsContainer.id = "settings-container"
+
     this.container.appendChild(this.metricsContainer)
     this.container.appendChild(this.menuBar)
     this.container.appendChild(this.primaryContainer)
@@ -187,6 +191,75 @@ export class GameEngine {
     this.loreEngine = new LoreEngine("terminal-container", (u: UnlockId) => {
       this.unlocks.add(u)
     })
+  }
+
+  private renderSettingsScreen() {
+    // Only build once
+    if (this.settingsContainer.querySelector("#settings-panel")) return
+
+    const panel = document.createElement("div")
+    panel.id = "settings-panel"
+
+    // Export button: copy save to clipboard, fallback to prompt
+    const exportButton = createButton("Export Save", async () => {
+      const saveStr = this.exportSave()
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(saveStr)
+          alert("Save copied to clipboard.")
+        } catch {
+          // Fallback to prompt if clipboard fails
+          window.prompt("Copy this save string:", saveStr)
+        }
+      } else {
+        window.prompt("Copy this save string:", saveStr)
+      }
+    })
+
+    // Import button: prompt for string, confirm, then import
+    const importButton = createButton("Import Save", () => {
+      const input = window.prompt("Paste a save string to import:")
+      if (!input) return
+      const ok = window.confirm(
+        "Importing will overwrite your current progress. Continue?",
+      )
+      if (!ok) return
+      try {
+        this.importSave(input)
+        alert("Import successful. UI will refresh to reflect imported state.")
+      } catch (e) {
+        alert("Failed to import save. Check the string and try again.")
+        console.error(e)
+      }
+    })
+
+    // Manual save: call autosave routine
+    const manualSaveButton = createButton("Manual Save", () => {
+      this.doAutosave()
+      this.loreEngine.playChapter(ChapterKey.ManualSave)
+    })
+
+    // Reset save: confirmation then clear and reload
+    const resetButton = createButton("Reset Save", () => {
+      const ok = window.confirm(
+        "This will reset your save and reload the page. This cannot be undone. Proceed?",
+      )
+      if (!ok) return
+      localStorage.removeItem("gameState")
+      // Reload to reset in-memory state
+      location.reload()
+    })
+
+    // Small layout
+    const row = document.createElement("div")
+    row.className = "d-flex gap-2 flex-column"
+    row.appendChild(exportButton)
+    row.appendChild(importButton)
+    row.appendChild(manualSaveButton)
+    row.appendChild(resetButton)
+
+    panel.appendChild(row)
+    this.settingsContainer.appendChild(panel)
   }
 
   private doAutosave() {
@@ -485,7 +558,7 @@ export class GameEngine {
   private setActiveContainer(menuBarId: MenuBarId) {
     const MENU_BAR_MAP: Record<MenuBarId, HTMLElement> = {
       [MenuBarKey.Actions]: this.actionsContainer,
-      [MenuBarKey.Settings]: this.actionsContainer,
+      [MenuBarKey.Settings]: this.settingsContainer,
     }
 
     this.primaryContainer.innerHTML = ""
@@ -497,6 +570,8 @@ export class GameEngine {
     this.renderMenuBar()
     // Render metrics
     this.renderMetricsScreen()
+    // Render settings (build UI if unlocked)
+    this.renderSettingsScreen()
 
     // Only selective render what's shown
     switch (this.currentMenuBar) {
