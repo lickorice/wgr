@@ -1,5 +1,6 @@
 import { LoreEngine } from "@game/lore/lore_engine"
 import { UnlockKey, type UnlockId } from "@game/types/unlocks"
+import { createCard, createButton, createProgress } from "@game/layout/util"
 
 const ActionKey = {
   VALIDATE_HUMANITY: 0,
@@ -165,7 +166,6 @@ export class GameEngine {
     this.menuBar = document.createElement("nav")
     this.menuBar.className = "nav nav-pills nav-justified my-2"
     this.menuBar.id = "menu-bar"
-    this.container.appendChild(this.menuBar)
     this.actionsContainer = document.createElement("div")
     this.actionsContainer.id = "actions-container"
     this.primaryContainer = document.createElement("div")
@@ -174,6 +174,7 @@ export class GameEngine {
     this.metricsContainer.id = "metrics-container"
 
     this.container.appendChild(this.metricsContainer)
+    this.container.appendChild(this.menuBar)
     this.container.appendChild(this.primaryContainer)
     // Set initial panel
     this.currentMenuBar = MenuBarKey.Actions
@@ -334,20 +335,15 @@ export class GameEngine {
             Object.entries(this.resources).map(([_resKey, resState]) => {
               const resKey = _resKey as CurrencyId
 
-              const progressContainer = document.createElement("div")
-              progressContainer.className = "progress position-relative"
-
               const containerTitle = document.createElement("h5")
               containerTitle.innerHTML = resState.spec.longName
 
-              const progressBar = document.createElement("div")
-              progressBar.className = "progress-bar"
-              progressBar.role = "progressbar"
+              const {
+                container: progressContainer,
+                progressBar,
+                progressLabel,
+              } = createProgress()
               progressBar.id = `metrics-progress-${resKey}`
-
-              const progressLabel = document.createElement("small")
-              progressLabel.className =
-                "justify-content-center d-flex position-absolute w-100"
 
               const updateProgressBar = (gameSnapshot: GameSnapshot) => {
                 const _resState = gameSnapshot.resources[resKey]
@@ -358,8 +354,6 @@ export class GameEngine {
                 progressBar.style.width = `${(100.0 * _resState.amount) / _resState.cap}%`
               }
 
-              progressContainer.appendChild(progressBar)
-              progressContainer.appendChild(progressLabel)
               container.appendChild(containerTitle)
               container.appendChild(progressContainer)
 
@@ -382,34 +376,20 @@ export class GameEngine {
         actionState.status === ActionStatusKey.Unlocked &&
         !actionState.element
       ) {
-        const actionsCard = document.createElement("div")
-        const actionsCardBody = document.createElement("div")
-        const actionsTitle = document.createElement("h5")
-        actionsCard.className = "card"
-        actionsCardBody.className = "card-body"
-        actionsTitle.className = "card-title"
-        actionsTitle.innerHTML = actionState.spec.displayTitle
+        const { card: actionsCard, body: actionsCardBody } = createCard(
+          actionState.spec.displayTitle,
+          actionState.spec.flavorText,
+        )
 
-        const buyButton = document.createElement("button")
         const costText = actionState.spec.cost
           .map((c) => `${c.value} ${c.currency}`)
           .join(", ")
-        buyButton.innerText = `Execute (${costText})`
 
-        buyButton.onclick = () =>
-          this.performAction(actionId as unknown as ActionId)
-
-        actionsCardBody.appendChild(actionsTitle)
-
-        if (actionState.spec.flavorText) {
-          const actionsFlavorText = document.createElement("div")
-          actionsFlavorText.className = "card-text"
-          actionsFlavorText.innerHTML = actionState.spec.flavorText
-          actionsCardBody.appendChild(actionsFlavorText)
-        }
+        const buyButton = createButton(`Execute (${costText})`, () =>
+          this.performAction(Number(actionId) as ActionId),
+        )
 
         actionsCardBody.appendChild(buyButton)
-        actionsCard.appendChild(actionsCardBody)
 
         actionsCard.id = `action-${actionId}`
 
