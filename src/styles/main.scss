@@ -1,0 +1,72 @@
+@import "../../node_modules/bootstrap/scss/functions";
+@import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/bootstrap";
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+body {
+    font-family: 'Roboto Mono', monospace;
+}
+
+#terminal-container {
+    background-color: #0a0a0a;
+    color: #d1d1d1;
+    font-size: 14px;
+    padding: 24px;
+    height: 500px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid #333;
+    line-height: 1.6;
+}
+
+.terminal-line {
+    margin-bottom: 6px;
+    white-space: pre-wrap; /* Preserves spacing and wraps long lines */
+    /* Use Roboto Mono with a fallback to monospace */
+}
+
+/* Specific Tag Styling */
+.tag-info { color: #e0e0e0; }
+.tag-warn { color: #ffca28; }
+.tag-_err { color: #ff5252; }
+.tag-good { color: #69f0ae; text-shadow: 0 0 5px rgba(105, 240, 174, 0.5); }
+
+.terminal-prefix {
+    color: #666;
+    margin-right: 12px;
+    font-weight: 400;
+}
+
+/* Blinking Cursor Effect */
+.cursor {
+    display: inline-block;
+    width: 8px;
+    height: 15px;
+    background-color: #69f0ae;
+    margin-left: 4px;
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+@keyframes flickerFadeIn {
+  0%   { opacity: 0; }
+  10%  { opacity: 0.5; }
+  15%  { opacity: 0.2; }
+  25%  { opacity: 0.8; }
+  30%  { opacity: 0.4; }
+  45%  { opacity: 1; }
+  50%  { opacity: 0.3; } // The "big" flicker
+  55%  { opacity: 0.9; }
+  100% { opacity: 1; }
+}
+
+.terminal-boot {
+  animation: flickerFadeIn 0.8s ease-in-out;
+  /* Optional: Add a slight scanline jitter during fade */
+  text-shadow: 0 0 2px rgba(105, 240, 174, 0.2);
+}
