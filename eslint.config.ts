@@ -12,7 +12,6 @@ export default defineConfig([
   ...tseslint.configs.recommended,
   {
     rules: {
-      // This tells ESLint to error if it finds a semicolon
       semi: ["error", "never"],
       "@typescript-eslint/no-unused-vars": [
         "error",
