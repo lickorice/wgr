@@ -3,8 +3,15 @@ import {
   type ChapterId,
   type ChapterEntry,
   type Message,
+  MessageTagKey,
 } from "@game/types/lore"
 import { ALL_CHAPTERS } from "@game/lore/data/chapters"
+import { type SettingsId, type GameSettingState } from "@game/types/settings"
+
+type LoreEngineHelpers = {
+  getGameSettings: () => Record<SettingsId, GameSettingState>;
+  unlock: (toUnlock: UnlockId) => void;
+};
 
 export class LoreEngine {
   chapters: Record<ChapterId, ChapterEntry>
@@ -13,13 +20,15 @@ export class LoreEngine {
   private charSpeed: number = 10 // ms per character
   private defaultMessageDelay: number = 500 // 0.5s between messages
 
-  private unlocker: (toUnlock: UnlockId) => void
+  private unlock: (toUnlock: UnlockId) => void
+  private getGameSettings: () => Record<SettingsId, GameSettingState>
 
-  constructor(containerId: string, unlocker: (toUnlock: UnlockId) => void) {
+  constructor(containerId: string, helpers: LoreEngineHelpers) {
     this.chapters = ALL_CHAPTERS
     this.alreadyRead = []
     this.container = document.getElementById(containerId) || document.body
-    this.unlocker = unlocker
+    this.unlock = helpers.unlock
+    this.getGameSettings = helpers.getGameSettings
   }
 
   private getTimestamp(): string {
@@ -68,7 +77,7 @@ export class LoreEngine {
 
     // If message can unlock stuff, do so:
     if (message.unlocks) {
-      message.unlocks.map((u) => this.unlocker(u))
+      message.unlocks.map((u) => this.unlock(u))
     }
 
     await this.sleep(postDelay)
@@ -86,6 +95,11 @@ export class LoreEngine {
     if (!this.passesPrerequisites(chapter.prerequisites ?? [])) return
 
     for (const msg of chapter.messages) {
+      if (
+        !this.getGameSettings().PlayMetaMessages.value &&
+        msg.tag === MessageTagKey.Meta
+      )
+        continue
       await this.typeMessage(msg)
     }
   }

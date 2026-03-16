@@ -18,7 +18,11 @@ import {
 import { type ActionId, type ActionState } from "@game/types/actions"
 import { ALL_ACTIONS } from "@game/engine/data/actions"
 import { ALL_GENERATORS } from "@game/engine/data/generators"
-import { type SettingsId, type GameSettingState } from "@game/types/settings"
+import {
+  SettingsKey,
+  type SettingsId,
+  type GameSettingState,
+} from "@game/types/settings"
 
 const MenuBarKey = {
   Actions: "Actions",
@@ -110,6 +114,8 @@ export class GameEngine {
   private loreEngine: LoreEngine
 
   private gameLogicUI: ((snapshot: GameSnapshot) => void)[] = []
+  // Handler id for the autosave interval so it can be cleared/restarted
+  private autosaveTimerId: number | null = null
 
   constructor(containerId: string) {
     // Initialize resources (assuming starting values)
@@ -162,29 +168,61 @@ export class GameEngine {
     this.setActiveContainer(MenuBarKey.Actions)
 
     // Sub-engine init:
-    this.loreEngine = new LoreEngine("terminal-container", (u: UnlockId) => {
-      this.unlocks.add(u)
+    this.loreEngine = new LoreEngine("terminal-container", {
+      unlock: (u: UnlockId) => {
+        this.unlocks.add(u)
+      },
+      getGameSettings: () => this.gameSettings,
     })
   }
 
   private doAutosave(playMessage: boolean = false) {
-    if (playMessage) {
+    if (playMessage && this.gameSettings.PlayAutosaveMessages.value) {
       this.loreEngine.playChapter(ChapterKey.AutosaveSave)
     }
     localStorage.setItem("gameState", this.exportSave())
+  }
+
+  // Clear any existing autosave interval and start a new one using the
+  // configured AutosaveInterval (seconds). Enforces a minimum of 5 seconds.
+  private resetAutosaveTimer() {
+    try {
+      if (this.autosaveTimerId != null) {
+        clearInterval(this.autosaveTimerId)
+        this.autosaveTimerId = null
+      }
+
+      const raw = Number(this.gameSettings?.AutosaveInterval?.value ?? 30)
+      const saneNumber = Number.isFinite(raw) ? raw : 30
+      const seconds = Math.max(5, Math.floor(saneNumber))
+
+      // Store the timer id so we can clear it later when the setting changes
+      this.autosaveTimerId = window.setInterval(
+        () => this.doAutosave(true),
+        seconds * 1000,
+      )
+      console.log(`Autosave interval set to ${seconds}s`)
+    } catch (e) {
+      console.error("Failed to reset autosave timer:", e)
+    }
   }
 
   public start() {
     const savedData = localStorage.getItem("gameState")
     if (savedData) {
       this.importSave(savedData)
-      this.loreEngine.playChapter(ChapterKey.AutosaveLoad)
+      if (this.gameSettings.PlayAutosaveMessages.value)
+        this.loreEngine.playChapter(ChapterKey.AutosaveLoad)
     } else {
       this.loreEngine.playChapter(0)
     }
 
+    // Start the main tick loop (1s)
     setInterval(() => this.doTick(), 1000)
-    setInterval(() => this.doAutosave(true), 30000)
+
+    // Start autosave using configured interval (in seconds) but enforce a
+    // minimum of 5 seconds to avoid rapid-fire saves or a zero interval.
+    this.resetAutosaveTimer()
 
     requestAnimationFrame(() => this.renderLoop())
   }
@@ -299,8 +337,6 @@ export class GameEngine {
         settingState.status = ContentStatusKey.Unlocked
       }
     })
-
-    console.log(this.gameSettings)
 
     // Play lore chapters if any:
     Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {
@@ -554,6 +590,13 @@ export class GameEngine {
         if (t === "boolean") s.value = Boolean(value)
         else if (t === "number") s.value = Number(value)
         else s.value = String(value)
+        // If the autosave interval was changed, restart the autosave loop
+        if (id === SettingsKey.AutosaveInterval) {
+          // End current loop and start a new one with the updated value.
+          // Don't force an immediate save; just restart the timer using the
+          // new interval. The reset function enforces a minimum of 5s.
+          this.resetAutosaveTimer()
+        }
       },
     })
 
