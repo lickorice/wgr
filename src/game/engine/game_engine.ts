@@ -1,6 +1,10 @@
 import { LoreEngine } from "@game/lore/lore_engine"
 import { UnlockKey, type UnlockId } from "@game/types/unlocks"
-import { createCard, createButton, createProgress } from "@game/layout/util"
+import {
+  createCard,
+  createProgress,
+  createAffordableButton,
+} from "@game/layout/util"
 import { attachSettingsUI, ALL_SETTINGS } from "@game/layout/settings"
 import { ChapterKey, type ChapterId } from "@game/types/lore"
 import { ContentStatusKey } from "@game/types/shared"
@@ -523,11 +527,20 @@ export class GameEngine {
             .map((c) => `${c.value} ${c.id}`)
             .join(", ")
 
-          const buyButton = createButton(
-            `Execute (${costText})`,
-            () => this.performAction(Number(actionId) as ActionId),
-            // stronger visual affordance for action buttons
-            "btn btn-sm btn-primary",
+          const { button: buyButton, update: updateAffordability } =
+            createAffordableButton(
+              actionState.spec.cost,
+              () => this.affordCost(actionState.spec.cost),
+              () => this.performAction(Number(actionId) as ActionId),
+              // stronger visual affordance for action buttons
+              "btn btn-sm btn-primary",
+            )
+
+          buyButton.innerText = `Execute (${costText})`
+
+          // Register an updater so the button state refreshes during ticks
+          this.gameLogicUI.push((_snapshot: GameSnapshot) =>
+            updateAffordability(),
           )
 
           // Wrap controls so the button can be flushed to the right for mobile ergonomics

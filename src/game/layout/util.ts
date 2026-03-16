@@ -38,6 +38,37 @@ export function createButton(
   return btn
 }
 
+import type { Cost } from "@game/types/resources"
+
+export function createAffordableButton(
+  cost: Cost[],
+  affordCheck: () => boolean,
+  onClick?: () => void,
+  className?: string,
+) {
+  const btn = createButton(``, onClick, className)
+
+  const update = () => {
+    const afforded = affordCheck();
+    (btn as HTMLButtonElement).disabled = !afforded
+    if (!afforded) btn.classList.add("disabled")
+    else btn.classList.remove("disabled")
+  }
+
+  if (!btn.innerText) {
+    try {
+      const costText = cost.map((c) => `${c.value} ${c.id}`).join(", ")
+      btn.innerText = costText ? `Execute (${costText})` : "Execute"
+    } catch {
+      btn.innerText = "Execute"
+    }
+  }
+
+  update()
+
+  return { button: btn, update }
+}
+
 export function createProgress() {
   const container = document.createElement("div")
   container.className = "progress position-relative"

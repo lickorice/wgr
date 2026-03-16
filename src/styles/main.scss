@@ -231,3 +231,26 @@ body {
     .action-card .card-body { padding: 8px; }
     .primary-nav { padding: 6px 8px; font-size: 14px; }
 }
+
+/* Ensure disabled buttons show a neutral grey appearance instead of
+     retaining their primary coloring. We target both the attribute and
+     the `.disabled` helper class used by the UI code. Placed after the
+     bootstrap imports so these rules take precedence. */
+.btn:disabled,
+.btn.disabled,
+.btn[disabled] {
+    background-color: #6c757d !important; /* Bootstrap secondary/grey */
+    border-color: #6c757d !important;
+    color: #ffffff !important;
+    opacity: 1 !important; /* keep it visually solid */
+    box-shadow: none !important;
+}
+
+/* Specifically ensure primary buttons lose their blue when disabled */
+.btn-primary:disabled,
+.btn-primary.disabled,
+.btn-primary[disabled] {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #ffffff !important;
+}
