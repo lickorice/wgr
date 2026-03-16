@@ -1,5 +1,0 @@
-# Run TypeScript type-check on the whole project
-npm run type-check
-
-# Run Prettier on only the staged files
-npx lint-staged
