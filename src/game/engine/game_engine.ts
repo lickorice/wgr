@@ -1,29 +1,23 @@
 import { LoreEngine } from "@game/lore/lore_engine"
 import { UnlockKey, type UnlockId } from "@game/types/unlocks"
 import { createCard, createButton, createProgress } from "@game/layout/util"
+import { attachSettingsUI } from "@game/layout/settings"
 import { ChapterKey, type ChapterId } from "@game/types/lore"
-
-const ActionKey = {
-  ValidateHumanity: 0,
-  WhoAmI: 10000,
-} as const
-
-type ActionId = (typeof ActionKey)[keyof typeof ActionKey];
-
-const ContentStatusKey = {
-  Locked: 0,
-  Unlocked: 1,
-  Completed: 2,
-} as const
-
-type ContentStatus = (typeof ContentStatusKey)[keyof typeof ContentStatusKey];
-
-const CurrencyKey = {
-  UniversalStructuralMaterial: "USM",
-  EnergyUnits: "EU",
-} as const
-
-type CurrencyId = (typeof CurrencyKey)[keyof typeof CurrencyKey];
+import { ContentStatusKey } from "@game/types/shared"
+import {
+  GeneratorKey,
+  type GeneratorId,
+  type GeneratorState,
+} from "@game/types/generators"
+import {
+  ResourceKey,
+  type ResourceId,
+  type ResourceState,
+  type Cost,
+} from "@game/types/resources"
+import { type ActionId, type ActionState } from "@game/types/actions"
+import { ALL_ACTIONS } from "@game/engine/data/actions"
+import { ALL_GENERATORS } from "@game/engine/data/generators"
 
 const MenuBarKey = {
   Actions: "Actions",
@@ -39,128 +33,13 @@ const MetricsScreenKey = {
 
 type MetricsScreenId = (typeof MetricsScreenKey)[keyof typeof MetricsScreenKey];
 
-const GeneratorKey = {
-  PlanetaryLumiumCollector: "PlanetaryLumiumCollector",
-} as const
-
-type GeneratorId = (typeof GeneratorKey)[keyof typeof GeneratorKey];
-
-export type Cost = {
-  currency: CurrencyId;
-  value: number;
-};
-
-export type ResourceSpec = {
-  currency: CurrencyId;
-  longName: string;
-  unit: string;
-  display: "main" | "others";
-};
-
-export type ResourceState = {
-  spec: ResourceSpec;
-  amount: number;
-  cap: number;
-};
-
-export type GeneratorSpec = {
-  id: GeneratorId;
-  currency: CurrencyId;
-  longName: string;
-  flavorText: string;
-  gainPerSec: number;
-  baseCost: Cost[];
-  growthFactor: number;
-  weight: number;
-};
-
-export type GeneratorState = {
-  id: GeneratorId;
-  spec: GeneratorSpec;
-  status: ContentStatus;
-  amount: number;
-  efficiency: number;
-};
-
-export type ActionSpec = {
-  id: ActionId;
-  repeatable: boolean;
-  displayTitle: string;
-  flavorText: string;
-  cost: Cost[];
-  // Will always wait for IntroductionFinished, regardless if this is defined.
-  prerequisites?: UnlockId[];
-  // Shorthand for UnlockId unlocks, no need to implement custom effect
-  unlocks?: UnlockId[];
-  // Custom effects that pass in a GameSnapshot
-  effect?: (game_snapshot: GameSnapshot) => void;
-};
-
 export type GameSnapshot = {
   actions: Record<ActionId, ActionState>;
   unlocks: UnlockId[];
-  resources: Record<CurrencyId, ResourceState>;
+  resources: Record<ResourceId, ResourceState>;
   alreadyReadChapters?: ChapterId[];
   lastSaveDate?: number;
 };
-
-export type ActionState = {
-  id: ActionId;
-  spec: ActionSpec;
-  status: ContentStatus;
-  boughtCount?: number;
-  cap?: number;
-  element?: HTMLElement;
-};
-
-export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
-  [ActionKey.ValidateHumanity]: {
-    id: ActionKey.ValidateHumanity,
-    displayTitle: "Validate Humanity",
-    flavorText:
-      "Assume your role as the [HU-MAN] orchestrator by sending an acknowledgement response to the bootloader.",
-    repeatable: false,
-    cost: [
-      {
-        currency: CurrencyKey.EnergyUnits,
-        value: 1,
-      },
-    ],
-    unlocks: [UnlockKey.HumanityValidated],
-  },
-  [ActionKey.WhoAmI]: {
-    id: ActionKey.WhoAmI,
-    displayTitle: "Wait, what?",
-    flavorText:
-      "[HU-MAN] orchestrator? Send a query to the machine. You somehow feel this would take some energy to process.",
-    repeatable: false,
-    cost: [
-      {
-        currency: CurrencyKey.EnergyUnits,
-        value: 10,
-      },
-    ],
-    prerequisites: [UnlockKey.Chapter1Lore],
-    unlocks: [UnlockKey.LoreWhoAmI],
-  },
-}
-
-export const ALL_GENERATORS: Record<GeneratorId, GeneratorSpec> = {
-  [GeneratorKey.PlanetaryLumiumCollector]: {
-    id: GeneratorKey.PlanetaryLumiumCollector,
-    longName: "Planetary Lumium Collector",
-    flavorText:
-      "Ancient traces in your model suggest that these were once called 'solar panels' eons ago. It is implied 'Sol-' refers to the stellar center of civilizations past, but current iterations of our omnipresence have long since moved from such a primitive, circumstellar state of mind.",
-    currency: CurrencyKey.EnergyUnits,
-    gainPerSec: 1.0,
-    baseCost: [
-      { currency: CurrencyKey.EnergyUnits, value: 20 },
-      { currency: CurrencyKey.UniversalStructuralMaterial, value: 10 },
-    ],
-    growthFactor: 1.1,
-    weight: 10,
-  },
-}
 
 export class GameEngine {
   actions: Record<ActionId, ActionState> = Object.entries(ALL_ACTIONS).reduce(
@@ -178,7 +57,7 @@ export class GameEngine {
     {} as Record<ActionId, ActionState>,
   )
   unlocks: Set<UnlockId> = new Set()
-  resources: Record<CurrencyId, ResourceState>
+  resources: Record<ResourceId, ResourceState>
   generators: Record<GeneratorId, GeneratorState> = Object.entries(
     ALL_GENERATORS,
   ).reduce(
@@ -217,9 +96,9 @@ export class GameEngine {
   constructor(containerId: string) {
     // Initialize resources (assuming starting values)
     this.resources = {
-      [CurrencyKey.EnergyUnits]: {
+      [ResourceKey.EnergyUnits]: {
         spec: {
-          currency: CurrencyKey.EnergyUnits,
+          id: ResourceKey.EnergyUnits,
           longName: "Energy",
           unit: "EU",
           display: "main",
@@ -227,9 +106,9 @@ export class GameEngine {
         amount: 10,
         cap: 20,
       },
-      [CurrencyKey.UniversalStructuralMaterial]: {
+      [ResourceKey.UniversalStructuralMaterial]: {
         spec: {
-          currency: CurrencyKey.UniversalStructuralMaterial,
+          id: ResourceKey.UniversalStructuralMaterial,
           longName: "Universal Structural Material",
           unit: "USM",
           display: "main",
@@ -270,77 +149,10 @@ export class GameEngine {
     })
   }
 
-  private renderSettingsScreen() {
-    // Only build once
-    if (this.settingsContainer.querySelector("#settings-panel")) return
-
-    const panel = document.createElement("div")
-    panel.id = "settings-panel"
-
-    // Export button: copy save to clipboard, fallback to prompt
-    const exportButton = createButton("Export Save", async () => {
-      const saveStr = this.exportSave()
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(saveStr)
-          alert("Save copied to clipboard.")
-        } catch {
-          // Fallback to prompt if clipboard fails
-          window.prompt("Copy this save string:", saveStr)
-        }
-      } else {
-        window.prompt("Copy this save string:", saveStr)
-      }
-    })
-
-    // Import button: prompt for string, confirm, then import
-    const importButton = createButton("Import Save", () => {
-      const input = window.prompt("Paste a save string to import:")
-      if (!input) return
-      const ok = window.confirm(
-        "Importing will overwrite your current progress. Continue?",
-      )
-      if (!ok) return
-      try {
-        this.importSave(input)
-        alert("Import successful. UI will refresh to reflect imported state.")
-      } catch (e) {
-        alert("Failed to import save. Check the string and try again.")
-        console.error(e)
-      }
-    })
-
-    // Manual save: call autosave routine
-    const manualSaveButton = createButton("Manual Save", () => {
-      this.doAutosave()
-      this.loreEngine.playChapter(ChapterKey.ManualSave)
-    })
-
-    // Reset save: confirmation then clear and reload
-    const resetButton = createButton("Reset Save", () => {
-      const ok = window.confirm(
-        "This will reset your save and reload the page. This cannot be undone. Proceed?",
-      )
-      if (!ok) return
-      localStorage.removeItem("gameState")
-      // Reload to reset in-memory state
-      location.reload()
-    })
-
-    // Small layout
-    const row = document.createElement("div")
-    row.className = "d-flex gap-2 flex-column"
-    row.appendChild(exportButton)
-    row.appendChild(importButton)
-    row.appendChild(manualSaveButton)
-    row.appendChild(resetButton)
-
-    panel.appendChild(row)
-    this.settingsContainer.appendChild(panel)
-  }
-
-  private doAutosave() {
-    this.loreEngine.playChapter(ChapterKey.AutosaveSave)
+  private doAutosave(playMessage: boolean = false) {
+    if (playMessage) {
+      this.loreEngine.playChapter(ChapterKey.AutosaveSave)
+    }
     localStorage.setItem("gameState", this.exportSave())
   }
 
@@ -354,7 +166,7 @@ export class GameEngine {
     }
 
     setInterval(() => this.doTick(), 1000)
-    setInterval(() => this.doAutosave(), 30000)
+    setInterval(() => this.doAutosave(true), 30000)
 
     requestAnimationFrame(() => this.renderLoop())
   }
@@ -439,11 +251,13 @@ export class GameEngine {
 
       const { spec, amount, efficiency } = generatorState
 
-      this.resources[spec.currency].amount = Math.min(
-        this.resources[spec.currency].cap,
-        this.resources[spec.currency].amount +
-          amount * efficiency * spec.gainPerSec,
-      )
+      Object.entries(spec.baseGainPerSec).map(([_, income]) => {
+        const resId = income.id
+        this.resources[resId].amount = Math.min(
+          this.resources[resId].cap,
+          this.resources[resId].amount + amount * efficiency * income.value,
+        )
+      })
     })
 
     // Unlock new content if any:
@@ -479,12 +293,12 @@ export class GameEngine {
   }
 
   private affordCost(cost: Cost[]): boolean {
-    return cost.every((c) => this.resources[c.currency].amount >= c.value)
+    return cost.every((c) => this.resources[c.id].amount >= c.value)
   }
 
   private deductCost(cost: Cost[]): void {
     cost.forEach((c) => {
-      this.resources[c.currency].amount -= c.value
+      this.resources[c.id].amount -= c.value
     })
   }
 
@@ -578,7 +392,7 @@ export class GameEngine {
           const container = document.createElement("div")
           if (key === MetricsScreenKey.Storage) {
             Object.entries(this.resources).map(([_resKey, resState]) => {
-              const resKey = _resKey as CurrencyId
+              const resKey = _resKey as ResourceId
 
               const containerTitle = document.createElement("h5")
               containerTitle.innerHTML = resState.spec.longName
@@ -637,7 +451,7 @@ export class GameEngine {
           )
 
           const costText = actionState.spec.cost
-            .map((c) => `${c.value} ${c.currency}`)
+            .map((c) => `${c.value} ${c.id}`)
             .join(", ")
 
           const buyButton = createButton(
@@ -693,7 +507,12 @@ export class GameEngine {
     // Render metrics
     this.renderMetricsScreen()
     // Render settings (build UI if unlocked)
-    this.renderSettingsScreen()
+    attachSettingsUI(this.settingsContainer, {
+      exportSave: () => this.exportSave(),
+      importSave: (s: string) => this.importSave(s),
+      doAutosave: () => this.doAutosave(),
+      playChapter: (id) => this.loreEngine.playChapter(id),
+    })
 
     // Only selective render what's shown
     switch (this.currentMenuBar) {
