@@ -1,5 +1,6 @@
 import { type ContentStatus } from "./shared"
 import { type Cost } from "./resources"
+import { type UnlockId } from "./unlocks"
 
 export const GeneratorKey = {
   PlanetaryLumiumCollector: "PlanetaryLumiumCollector",
@@ -15,6 +16,7 @@ export type GeneratorSpec = {
   baseCost: Cost[];
   growthFactor: number;
   weight: number;
+  prerequisites?: UnlockId[];
 };
 
 export type GeneratorState = {

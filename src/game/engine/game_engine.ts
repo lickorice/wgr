@@ -3,6 +3,7 @@ import { UnlockKey, type UnlockId } from "@game/types/unlocks"
 import { createProgress } from "@game/layout/util"
 import { attachSettingsUI, ALL_SETTINGS } from "@game/layout/settings"
 import { attachActionsUI } from "@game/layout/actions"
+import { attachAssetsUI } from "@game/layout/assets"
 import { ChapterKey, type ChapterId } from "@game/types/lore"
 import { ContentStatusKey } from "@game/types/shared"
 import {
@@ -27,6 +28,7 @@ import {
 
 const MenuBarKey = {
   Actions: "Actions",
+  Assets: "Assets",
   Settings: "Settings",
 } as const
 
@@ -109,6 +111,7 @@ export class GameEngine {
   private menuBarItems: Set<MenuBarId> = new Set()
   private currentMenuBar: MenuBarId = MenuBarKey.Actions
   private actionsContainer: HTMLElement
+  private assetsContainer: HTMLElement
   private settingsContainer: HTMLElement
   // private activeProgress: Map<ActionId, number> = new Map() // Tracks 0-100% for bars
 
@@ -160,6 +163,9 @@ export class GameEngine {
 
     this.settingsContainer = document.createElement("div")
     this.settingsContainer.id = "settings-container"
+
+    this.assetsContainer = document.createElement("div")
+    this.assetsContainer.id = "assets-container"
 
     this.container.appendChild(this.metricsContainer)
     this.container.appendChild(this.menuBar)
@@ -304,27 +310,6 @@ export class GameEngine {
   }
 
   private doTick() {
-    // Apply the descriptons font setting (toggled in the UI). We run this
-    // here each tick so any external changes (imported save, UI toggle)
-    // are applied reliably without relying on the settings updater path.
-    try {
-      const enabled = Boolean(
-        this.gameSettings[SettingsKey.UseSansSerifDescriptions]?.value,
-      )
-      if (
-        enabled &&
-        !document.body.classList.contains("use-roboto-descriptions")
-      )
-        document.body.classList.add("use-roboto-descriptions")
-      else if (
-        !enabled &&
-        document.body.classList.contains("use-roboto-descriptions")
-      )
-        document.body.classList.remove("use-roboto-descriptions")
-    } catch (e) {
-      // Defensive: don't let a DOM error stop the tick loop
-      console.warn("Failed to apply descriptions font setting:", e)
-    }
     // Increment resources based on generators:
     Object.entries(this.generators).map(([_, generatorState]) => {
       if (!generatorState.amount) return // Fast return
@@ -351,12 +336,21 @@ export class GameEngine {
       }
     })
     Object.entries(this.gameSettings).map(([_, settingState]) => {
-      const actionIsLocked = settingState.status === ContentStatusKey.Locked
-      const actionPrerequisites = settingState.setting.prerequisites ?? [
+      const settingIsLocked = settingState.status === ContentStatusKey.Locked
+      const settingPrerequisites = settingState.setting.prerequisites ?? [
         UnlockKey.IntroductionFinished,
       ]
-      if (actionIsLocked && this.passesPrerequisites(actionPrerequisites)) {
+      if (settingIsLocked && this.passesPrerequisites(settingPrerequisites)) {
         settingState.status = ContentStatusKey.Unlocked
+      }
+    })
+    Object.entries(this.generators).map(([_, genState]) => {
+      const genIsLocked = genState.status === ContentStatusKey.Locked
+      const settingPrerequisites = genState.spec.prerequisites ?? [
+        UnlockKey.AssetsUIUnlock,
+      ]
+      if (genIsLocked && this.passesPrerequisites(settingPrerequisites)) {
+        genState.status = ContentStatusKey.Unlocked
       }
     })
 
@@ -431,6 +425,7 @@ export class GameEngine {
   private renderMenuBar() {
     const MENU_BAR_LOOKUP: Record<MenuBarId, UnlockId[]> = {
       [MenuBarKey.Actions]: [UnlockKey.ActionsUI],
+      [MenuBarKey.Assets]: [UnlockKey.AssetsUIUnlock],
       [MenuBarKey.Settings]: [UnlockKey.SettingsUI],
     }
 
@@ -525,11 +520,14 @@ export class GameEngine {
   private setActiveContainer(menuBarId: MenuBarId) {
     const MENU_BAR_MAP: Record<MenuBarId, HTMLElement> = {
       [MenuBarKey.Actions]: this.actionsContainer,
+      [MenuBarKey.Assets]: this.assetsContainer,
       [MenuBarKey.Settings]: this.settingsContainer,
     }
 
     this.primaryContainer.innerHTML = ""
-    this.primaryContainer.appendChild(MENU_BAR_MAP[menuBarId])
+    this.primaryContainer.appendChild(
+      MENU_BAR_MAP[menuBarId] ?? this.actionsContainer,
+    )
   }
 
   private renderLoop() {
@@ -539,14 +537,12 @@ export class GameEngine {
 
     // Only selectively render what's shown
     switch (this.currentMenuBar) {
-      case MenuBarKey.Actions:
-        if (this.passesPrerequisites([UnlockKey.ActionsUI])) {
-          attachActionsUI(this.actionsContainer, {
-            getActions: () => this.actions,
+      case MenuBarKey.Assets:
+        if (this.passesPrerequisites([UnlockKey.AssetsUIUnlock])) {
+          attachAssetsUI(this.assetsContainer, {
+            getGenerators: () => this.generators,
             getGameSettings: () => this.gameSettings,
-            affordCost: (cost) => this.affordCost(cost),
-            performAction: (id) => this.performAction(id),
-            registerUpdater: (fn) => {
+            registerUpdater: (fn: (snapshot: GameSnapshot) => void) => {
               this.gameLogicUI.push(fn)
             },
           })
@@ -579,6 +575,20 @@ export class GameEngine {
             // consistently applied there.
           },
         })
+        break
+      default:
+      case MenuBarKey.Actions:
+        if (this.passesPrerequisites([UnlockKey.ActionsUI])) {
+          attachActionsUI(this.actionsContainer, {
+            getActions: () => this.actions,
+            getGameSettings: () => this.gameSettings,
+            affordCost: (cost) => this.affordCost(cost),
+            performAction: (id) => this.performAction(id),
+            registerUpdater: (fn) => {
+              this.gameLogicUI.push(fn)
+            },
+          })
+        }
         break
     }
 

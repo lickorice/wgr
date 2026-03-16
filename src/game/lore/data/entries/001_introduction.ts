@@ -136,7 +136,11 @@ export const postAssetUnlock: ChapterEntry = {
       tag: MessageTagKey.Info,
       content: "Connecting to [management.assets]...",
     },
-    { tag: MessageTagKey.Success, content: "Successfully connected." },
+    {
+      tag: MessageTagKey.Success,
+      content: "Successfully connected.",
+      unlocks: [UnlockKey.AssetsUIUnlock],
+    },
     {
       tag: MessageTagKey.Info,
       content: "Listing onboard assets...",

@@ -9,6 +9,7 @@ export const UnlockKey = {
   AdvancedMetricsUI: 7,
   LandedBodyMetrics: 8,
   EnableStorage: 9,
+  AssetsUIUnlock: 10,
 
   AssetLore: 8000,
   ResearchLore: 8001,
