@@ -28,7 +28,7 @@ export const ALL_SETTINGS: Record<SettingsId, GameSetting> = {
     type: "boolean",
     longName: "Play autosave messages in terminal",
     helperText:
-      "Plays lore-accurate autosave messages in the terminal. May interrupt anything that's already going on, breaking (or improving) your immersion.",
+      "Plays lore-accurate autosave messages in the terminal. May bunch up in the terminal queue, which may break (or improve) your immersion.",
   },
   [SettingsKey.AutosaveInterval]: {
     id: SettingsKey.AutosaveInterval,
@@ -37,6 +37,14 @@ export const ALL_SETTINGS: Record<SettingsId, GameSetting> = {
     longName: "Autosave interval (in secs)",
     helperText:
       "Self explanatory. Set to an impossibly high number to virtually disable auto-saving (Not recommended).",
+  },
+  [SettingsKey.UseSansSerifDescriptions]: {
+    id: SettingsKey.UseSansSerifDescriptions,
+    defaultValue: false,
+    type: "boolean",
+    longName: "Use sans-serif font for descriptions",
+    helperText:
+      "Use the Roboto sans-serif font for description text. Toggle on if you prefer a cleaner sans-serif look for descriptions.",
   },
 }
 
@@ -92,9 +100,18 @@ export function attachSettingsUI(container: HTMLElement, helpers: Helpers) {
       const row = document.createElement("div")
       row.className = "d-flex align-items-center gap-2 mb-2"
 
-      const label = document.createElement("div")
-      label.className = "flex-grow-1 small"
+      const labelContainer = document.createElement("div")
+      labelContainer.className = "flex-grow-1 small"
+      const label = document.createElement("h6")
       label.innerText = state.setting.longName
+      const description = document.createElement("p")
+      description.innerText = state.setting.helperText
+      description.className = "text-muted small"
+      if (gameSettings.UseSansSerifDescriptions.value) {
+        description.classList.add("sans-serif")
+      }
+      labelContainer.appendChild(label)
+      labelContainer.appendChild(description)
 
       let controlContainer: HTMLElement | null = null
 
@@ -128,7 +145,7 @@ export function attachSettingsUI(container: HTMLElement, helpers: Helpers) {
         }
       }
 
-      row.appendChild(label)
+      row.appendChild(labelContainer)
       if (controlContainer) row.appendChild(controlContainer)
       settingsList!.appendChild(row)
     })

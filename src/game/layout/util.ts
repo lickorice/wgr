@@ -1,10 +1,14 @@
-export function createCard(title: string, flavorText?: string) {
+export function createCard(
+  title: string,
+  flavorText?: string,
+  sanserif?: boolean,
+) {
   const card = document.createElement("div")
   const cardBody = document.createElement("div")
   const titleEl = document.createElement("h5")
 
   // Action-specific card class for targeted styling
-  card.className = "card mb-2 action-card"
+  card.className = "card mb-2 action-card border-light"
   cardBody.className = "card-body"
   // Use a compact heading suitable for small screens
   titleEl.className = "card-title h6"
@@ -16,6 +20,9 @@ export function createCard(title: string, flavorText?: string) {
     const flavor = document.createElement("div")
     // subtle, compact flavor text
     flavor.className = "card-text text-muted small"
+    if (sanserif) {
+      flavor.classList.add("sans-serif")
+    }
     flavor.innerHTML = flavorText
     cardBody.appendChild(flavor)
   }

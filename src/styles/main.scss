@@ -246,6 +246,13 @@ body {
     box-shadow: none !important;
 }
 
+/* When the user enables the 'UseSansSerifDescriptions' setting, this
+     class will be added to <body> to apply Roboto to description text.
+     Descriptions use the `.text-muted` class throughout the UI. */
+.sans-serif {
+    font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
 /* Specifically ensure primary buttons lose their blue when disabled */
 .btn-primary:disabled,
 .btn-primary.disabled,

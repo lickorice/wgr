@@ -5,6 +5,7 @@ export const SettingsKey = {
   PlayMetaMessages: "PlayMetaMessages",
   PlayAutosaveMessages: "PlayAutosaveMessages",
   AutosaveInterval: "AutosaveInterval",
+  UseSansSerifDescriptions: "UseSansSerifDescriptions",
 } as const
 
 export type SettingsId = (typeof SettingsKey)[keyof typeof SettingsKey];

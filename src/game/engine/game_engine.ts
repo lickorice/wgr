@@ -307,6 +307,27 @@ export class GameEngine {
   }
 
   private doTick() {
+    // Apply the descriptons font setting (toggled in the UI). We run this
+    // here each tick so any external changes (imported save, UI toggle)
+    // are applied reliably without relying on the settings updater path.
+    try {
+      const enabled = Boolean(
+        this.gameSettings[SettingsKey.UseSansSerifDescriptions]?.value,
+      )
+      if (
+        enabled &&
+        !document.body.classList.contains("use-roboto-descriptions")
+      )
+        document.body.classList.add("use-roboto-descriptions")
+      else if (
+        !enabled &&
+        document.body.classList.contains("use-roboto-descriptions")
+      )
+        document.body.classList.remove("use-roboto-descriptions")
+    } catch (e) {
+      // Defensive: don't let a DOM error stop the tick loop
+      console.warn("Failed to apply descriptions font setting:", e)
+    }
     // Increment resources based on generators:
     Object.entries(this.generators).map(([_, generatorState]) => {
       if (!generatorState.amount) return // Fast return
@@ -521,6 +542,7 @@ export class GameEngine {
           const { card: actionsCard, body: actionsCardBody } = createCard(
             actionState.spec.displayTitle,
             actionState.spec.flavorText,
+            this.gameSettings.UseSansSerifDescriptions.value as boolean,
           )
 
           const costText = actionState.spec.cost
@@ -566,6 +588,9 @@ export class GameEngine {
         placeholder.id = "actions-empty"
         placeholder.className = "text-muted small p-2"
         placeholder.innerText = "No actions are currently doable."
+        if (this.gameSettings.UseSansSerifDescriptions) {
+          placeholder.classList.add("sans-serif")
+        }
         this.actionsContainer.appendChild(placeholder)
       }
     } else if (existingPlaceholder) {
@@ -615,6 +640,9 @@ export class GameEngine {
               // new interval. The reset function enforces a minimum of 5s.
               this.resetAutosaveTimer()
             }
+            // NOTE: visual application of the descriptions font setting is
+            // handled in doTick() so imports and other state paths are
+            // consistently applied there.
           },
         })
         break
