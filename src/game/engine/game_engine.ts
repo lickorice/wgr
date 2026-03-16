@@ -1,11 +1,8 @@
 import { LoreEngine } from "@game/lore/lore_engine"
 import { UnlockKey, type UnlockId } from "@game/types/unlocks"
-import {
-  createCard,
-  createProgress,
-  createAffordableButton,
-} from "@game/layout/util"
+import { createProgress } from "@game/layout/util"
 import { attachSettingsUI, ALL_SETTINGS } from "@game/layout/settings"
+import { attachActionsUI } from "@game/layout/actions"
 import { ChapterKey, type ChapterId } from "@game/types/lore"
 import { ContentStatusKey } from "@game/types/shared"
 import {
@@ -525,79 +522,6 @@ export class GameEngine {
     })
   }
 
-  private renderActionsScreen() {
-    if (!this.passesPrerequisites([UnlockKey.ActionsUI])) return
-    // Render individual actions and ensure a visible empty placeholder
-    const existingPlaceholder =
-      this.actionsContainer.querySelector("#actions-empty")
-    let unlockedCount = 0
-
-    Object.entries(this.actions).forEach(([actionId, actionState]) => {
-      // Count unlocked actions
-      if (actionState.status === ContentStatusKey.Unlocked) {
-        unlockedCount++
-
-        // Only create DOM once per action
-        if (!actionState.element) {
-          const { card: actionsCard, body: actionsCardBody } = createCard(
-            actionState.spec.displayTitle,
-            actionState.spec.flavorText,
-            this.gameSettings.UseSansSerifDescriptions.value as boolean,
-          )
-
-          const costText = actionState.spec.cost
-            .map((c) => `${c.value} ${c.id}`)
-            .join(", ")
-
-          const { button: buyButton, update: updateAffordability } =
-            createAffordableButton(
-              actionState.spec.cost,
-              () => this.affordCost(actionState.spec.cost),
-              () => this.performAction(Number(actionId) as ActionId),
-              // stronger visual affordance for action buttons
-              "btn btn-sm btn-primary",
-            )
-
-          buyButton.innerText = `Execute (${costText})`
-
-          // Register an updater so the button state refreshes during ticks
-          this.gameLogicUI.push((_snapshot: GameSnapshot) =>
-            updateAffordability(),
-          )
-
-          // Wrap controls so the button can be flushed to the right for mobile ergonomics
-          const controls = document.createElement("div")
-          controls.className =
-            "action-card-controls d-flex justify-content-end mt-2"
-          controls.appendChild(buyButton)
-
-          actionsCardBody.appendChild(controls)
-
-          actionsCard.id = `action-${actionId}`
-
-          this.actionsContainer.append(actionsCard)
-          actionState.element = actionsCard
-        }
-      }
-    })
-
-    // If there are no unlocked actions, show a visible, tangible empty state
-    if (unlockedCount === 0) {
-      if (!existingPlaceholder) {
-        const placeholder = document.createElement("div")
-        placeholder.id = "actions-empty"
-        placeholder.className = "text-muted small p-2"
-        placeholder.innerText = "No actions are currently doable."
-        if (this.gameSettings.UseSansSerifDescriptions) {
-          placeholder.classList.add("sans-serif")
-        }
-        this.actionsContainer.appendChild(placeholder)
-      }
-    } else if (existingPlaceholder) {
-      existingPlaceholder.remove()
-    }
-  }
-
   private setActiveContainer(menuBarId: MenuBarId) {
     const MENU_BAR_MAP: Record<MenuBarId, HTMLElement> = {
       [MenuBarKey.Actions]: this.actionsContainer,
@@ -616,7 +540,17 @@ export class GameEngine {
     // Only selectively render what's shown
     switch (this.currentMenuBar) {
       case MenuBarKey.Actions:
-        this.renderActionsScreen()
+        if (this.passesPrerequisites([UnlockKey.ActionsUI])) {
+          attachActionsUI(this.actionsContainer, {
+            getActions: () => this.actions,
+            getGameSettings: () => this.gameSettings,
+            affordCost: (cost) => this.affordCost(cost),
+            performAction: (id) => this.performAction(id),
+            registerUpdater: (fn) => {
+              this.gameLogicUI.push(fn)
+            },
+          })
+        }
         break
       case MenuBarKey.Settings:
         attachSettingsUI(this.settingsContainer, {
