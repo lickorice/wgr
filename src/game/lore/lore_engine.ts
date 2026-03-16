@@ -185,7 +185,18 @@ export class LoreEngine {
     this.statusElement.style.right = `${right}px`
   }
 
-  private showPlayingStatus() {
+  public showCustomStatus(statusStr: string) {
+    const el = this.getStatusElement()
+    el.innerHTML = `
+      <div class="spinner-border spinner-border-sm text-info" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <div class="status-text text-info">${statusStr}</div>
+    `
+    el.style.display = "flex"
+  }
+
+  public showPlayingStatus() {
     const el = this.getStatusElement()
     el.innerHTML = `
       <div class="spinner-border spinner-border-sm text-info" role="status">
@@ -196,7 +207,7 @@ export class LoreEngine {
     el.style.display = "flex"
   }
 
-  private showDoneStatus() {
+  public showDoneStatus() {
     const el = this.getStatusElement()
     el.innerHTML = `
       <div class="text-success status-done">\u2713</div>
@@ -212,7 +223,7 @@ export class LoreEngine {
   }
 
   // Enqueue a chapterId, or a sequence of messages to be played. Worker will process sequentially.
-  public async play(entry: ChapterId | Message[]) {
+  public play(entry: ChapterId | Message[]) {
     // simple guard: ignore unknown chapters
     if (!Array.isArray(entry)) {
       if (!this.chapters[entry]) return

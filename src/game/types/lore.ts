@@ -4,6 +4,7 @@ export const ChapterKey = {
   Introduction: 0,
   PostIntroduction: 1,
   AssetLore: 2,
+  BootstrapperLore: 3,
 
   LoreWhoAmI: 800,
 

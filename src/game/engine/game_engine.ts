@@ -277,9 +277,6 @@ export class GameEngine {
       const decoded = atob(gameSaveStr)
       const data = JSON.parse(decoded) as GameSnapshot
 
-      // 1. Calculate Offline Progress
-      if (data.lastSaveDate) this.calculateOfflineProgress(data.lastSaveDate)
-
       // 2. Restore / migrate Resources, Settings, Generators & Unlocks
       // Merge saved resources into current defaults (constructor set defaults)
       const savedResources = (data.resources ?? {}) as Partial<
@@ -436,6 +433,7 @@ export class GameEngine {
       // Clear UI containers so they re-render from new state
       this.actionsContainer.innerHTML = ""
       console.log("Save loaded successfully.")
+      if (data.lastSaveDate) this.calculateOfflineProgress(data.lastSaveDate)
     } catch (e) {
       console.error("Failed to import save:", e)
     }
@@ -455,12 +453,19 @@ export class GameEngine {
     const maxOfflineTicks = 3600 * 24 // Cap at 24 hours
     const actualTicks = Math.min(secondsPassed, maxOfflineTicks)
 
+    this.loreEngine.play([
+      {
+        tag: MessageTagKey.Meta,
+        content: `Catching up with offline progress (${actualTicks} ticks)...`,
+      },
+    ])
     for (let i = 0; i < actualTicks; i++) {
-      // If you have passive resource generation, call it here:
-      // this.applyPassiveGeneration();
-      // We don't necessarily want to call this.doTick() because
-      // it handles UI. Just update the numbers.
+      this.loreEngine.showCustomStatus(
+        `CALCULATING OFFLINE PROGRESS ${i + 1}/${actualTicks}`,
+      )
+      this.doTick()
     }
+    this.loreEngine.showDoneStatus()
   }
 
   private doTick() {

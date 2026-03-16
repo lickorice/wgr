@@ -163,6 +163,11 @@ export const postAssetUnlock: ChapterEntry = {
     {
       tag: MessageTagKey.Info,
       content:
+        "Blueprints for 3 out of 3 Best-Effort Unit (BEU) devices have been loaded to memory.",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content:
         "Generating action proposals for [HU-M4N] interface to ensure best statistical chance for mission success...",
     },
     {
@@ -174,4 +179,74 @@ export const postAssetUnlock: ChapterEntry = {
   ],
   prerequisites: [ChapterKey.PostIntroduction], // Note: Fixed logic from PostIntroduction to Introduction
   unlockPrerequisites: [UnlockKey.AssetsUI],
+}
+
+export const researchUnlock: ChapterEntry = {
+  id: ChapterKey.BootstrapperLore,
+  messages: [
+    {
+      tag: MessageTagKey.Info,
+      content: "Confirming integrity of [boot.strapper] module...",
+    },
+    {
+      tag: MessageTagKey.Success,
+      content: "Module validated.",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "Initializing [management.assets] module...OK",
+    },
+    {
+      tag: MessageTagKey.Success,
+      content:
+        "     ________\n    /\\ \\  / /\\\n   /\\ \\ \\/ / /\\\n  /__\\_\\/ / /__\\ \n /______\\/_/____\\\n \\______/\\ \\____/ \n  \\  / /\\ \\ \\  / [boot.strapper]\n   \\/ / /\\ \\ \\/  Scalable Knowledge Acquisition\n    \\/_/__\\_\\/   v592.16466.33102",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "-- synthesized by: Mithrandyr StellarCorp",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "-- synthesis date: 6.14e13 seconds ago",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "-- ware version:   v592.16466.33102",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content:
+        "-- provided description:  The [boot.strapper] Scalable Knowledge Acquisition module is an infinitely scalable K.0 Non-Sentient inference engine.",
+    },
+    {
+      tag: MessageTagKey.Warn,
+      content:
+        "-- machine note:          While base inference speed is 4.3σ lower than the average, this module has proven highly impactful in high-risk, damage-prone scenarios. With its high scalability metrics, eons of module synthesis worked towards compressing it to the lowest size possible to make the cost of equipping the module negligible.",
+    },
+    {
+      tag: MessageTagKey.Meta,
+      content:
+        "This is the equivalent of having a smartphone with an internet connection while stranded alone in a deserted island.",
+    },
+    {
+      tag: MessageTagKey.Meta,
+      content:
+        "However, it's basically an AI that gets faster when you give it more power (i.e. scalability); and learns how to 'create' new knowledge. Like humans.",
+    },
+    {
+      tag: MessageTagKey.Meta,
+      content: "I wonder if this won't be fiction soon IRL? Who knows.",
+    },
+    {
+      tag: MessageTagKey.Warn,
+      content:
+        "Use of [boot.strapper] and future modules will consume resources, in this case, EU, over time. If said resources are not sufficient, the procedures will fail and resources spent up to that point will be wasted. Disclaimer is automatically hidden in the future.",
+    },
+    {
+      tag: MessageTagKey.Meta,
+      content: "If that wasn't clear, you have been warned.",
+    },
+  ],
+  prerequisites: [ChapterKey.PostIntroduction],
+  unlockPrerequisites: [UnlockKey.BootstrapperUI],
 }

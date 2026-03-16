@@ -69,12 +69,12 @@ export const loreWhoAmI: ChapterEntry = {
     {
       tag: MessageTagKey.Info,
       content:
-        "-- provided description: The [HU-M4N] orchestrator is a reliable best-effort backup orchestrator since the first iteration of VNMs. It requires minimal electronic storage and is highly resistant to general risks brought by travel.",
+        "-- provided description:  The [HU-M4N] orchestrator is a reliable best-effort backup orchestrator since the first iteration of VNMs. It requires minimal electronic storage and is highly resistant to general risks brought by travel.",
     },
     {
       tag: MessageTagKey.Warn,
       content:
-        "-- machine note: The installation process notoriously requires preservation and electronic transcendence of certain complex carbon substances, which have not yet been found in logs, indicating a statistically improbable chance of existence as of this moment. Simulations suggest that this machine's hardware age exceeds operational mean by 5.6σ, which may be why it has come equipped with the [HU-M4N] orchestrator.",
+        "-- machine note:          The installation process notoriously requires preservation and electronic transcendence of certain complex carbon substances, which have not yet been found in logs, indicating a statistically improbable chance of existence as of this moment. Simulations suggest that this machine's hardware age exceeds operational mean by 5.6σ, which may be why it has come equipped with the [HU-M4N] orchestrator.",
     },
     {
       tag: MessageTagKey.Meta,
