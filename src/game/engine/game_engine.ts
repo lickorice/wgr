@@ -50,10 +50,11 @@ export type GameSnapshot = {
   actions: Record<ActionId, ActionState>;
   unlocks: UnlockId[];
   resources: Record<ResourceId, ResourceState>;
+  generators: Record<GeneratorId, GeneratorState>;
   gameSettings: Record<SettingsId, GameSettingState>;
-  // Optional version string to detect save-version changes and assist migrations
   gameVersion?: string;
   alreadyReadChapters?: ChapterId[];
+  currentlyReading?: ChapterId | null;
   lastSaveDate?: number;
 };
 
@@ -247,13 +248,14 @@ export class GameEngine {
   public exportSave(): string {
     const snapshot: GameSnapshot = {
       actions: this.actions,
-      // Convert Set to Array for JSON stringify
       unlocks: Array.from(this.unlocks),
       resources: this.resources,
+      generators: this.generators,
       gameSettings: this.gameSettings,
       gameVersion: GAME_VERSION,
       lastSaveDate: Date.now(),
       alreadyReadChapters: this.loreEngine.alreadyRead,
+      currentlyReading: this.loreEngine.currentlyReading,
     }
 
     // Remove HTMLElements from the snapshot before saving
@@ -311,11 +313,7 @@ export class GameEngine {
       })
 
       // Merge generators: ensure ALL_GENERATORS keys exist and re-attach spec
-      const savedGenerators = (
-        data as unknown as {
-          generators?: Partial<Record<GeneratorId, GeneratorState>>;
-        }
-      ).generators
+      const savedGenerators = data.generators
       Object.entries(ALL_GENERATORS).forEach(([id, spec]) => {
         const generatorId = id as GeneratorId
         const defaultGen: GeneratorState = {
@@ -347,6 +345,7 @@ export class GameEngine {
       // Restore unlocks & already-read chapters
       this.unlocks = new Set(data.unlocks)
       this.loreEngine.alreadyRead = data.alreadyReadChapters ?? []
+      this.loreEngine.currentlyReading = data.currentlyReading ?? null
 
       // If the save's gameVersion differs from current, generate a small changelog
       const savedVersion = data.gameVersion ?? null
@@ -525,6 +524,7 @@ export class GameEngine {
         actions: this.actions,
         unlocks: Array.from(this.unlocks),
         resources: this.resources,
+        generators: this.generators,
         gameSettings: this.gameSettings,
       }),
     )
@@ -566,6 +566,7 @@ export class GameEngine {
         actions: this.actions,
         unlocks: Array.from(this.unlocks),
         resources: this.resources,
+        generators: this.generators,
         gameSettings: this.gameSettings,
       })
     }

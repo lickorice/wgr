@@ -1,5 +1,6 @@
 import { type UnlockId } from "@game/types/unlocks"
 import {
+  ChapterKey,
   type ChapterId,
   type ChapterEntry,
   type Message,
@@ -16,6 +17,7 @@ type LoreEngineHelpers = {
 export class LoreEngine {
   chapters: Record<ChapterId, ChapterEntry>
   alreadyRead: ChapterId[]
+  currentlyReading: ChapterId | null
   private container: HTMLElement
   private charSpeed: number = 10 // ms per character
   private defaultMessageDelay: number = 500 // 0.5s between messages
@@ -35,6 +37,7 @@ export class LoreEngine {
     this.unlock = helpers.unlock
     this.getGameSettings = helpers.getGameSettings
     this.repositionStatusBound = this.repositionStatus.bind(this)
+    this.currentlyReading = null
 
     // Ensure container can position status element
     if (
@@ -220,10 +223,34 @@ export class LoreEngine {
     }
   }
 
+  private async printChapter(chapterEntry: ChapterEntry) {
+    for (const msg of chapterEntry.messages) {
+      if (
+        !this.getGameSettings().PlayMetaMessages.value &&
+        msg.tag === MessageTagKey.Meta
+      )
+        continue
+      await this.typeMessage(msg)
+    }
+  }
+
   // Worker that processes queued chapters sequentially
   private async processQueue() {
     if (this.isProcessing) return
     this.isProcessing = true
+
+    if (this.currentlyReading) {
+      if (this.currentlyReading >= 1000) {
+        // Programmed messages, nothing to worry about:
+        this.currentlyReading = null
+      } else {
+        // If encountered, then typically a save in the middle of playing a chapter was loaded.
+        const metaWarnChapter = this.chapters[ChapterKey.InterruptedLore]
+        const chapter = this.chapters[this.currentlyReading]
+        await this.printChapter(metaWarnChapter)
+        await this.printChapter(chapter)
+      }
+    }
 
     while (this.queue.length > 0) {
       const id = this.queue.shift() as ChapterId
@@ -240,20 +267,15 @@ export class LoreEngine {
       if (!this.passesPrerequisites(chapter.prerequisites ?? [])) continue
 
       // show status UI
+      this.currentlyReading = id
       this.showPlayingStatus()
 
-      for (const msg of chapter.messages) {
-        if (
-          !this.getGameSettings().PlayMetaMessages.value &&
-          msg.tag === MessageTagKey.Meta
-        )
-          continue
-        await this.typeMessage(msg)
-      }
+      this.printChapter(chapter)
 
       // Mark unlocks handled inside typeMessage already
 
       // show done state
+      this.currentlyReading = null
       this.showDoneStatus()
 
       // keep the DONE state visible for a short moment, then hide if no more queued

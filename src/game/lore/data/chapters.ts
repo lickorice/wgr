@@ -12,6 +12,7 @@ import {
   autosaveLoad,
   autosaveSave,
   manualSave,
+  interruptedLore,
 } from "./entries/999_programmed"
 import { loreWhoAmI } from "./entries/800_loredump"
 
@@ -27,4 +28,5 @@ export const ALL_CHAPTERS: Record<ChapterId, ChapterEntry> = {
   [ChapterKey.AutosaveLoad]: autosaveLoad,
   [ChapterKey.AutosaveSave]: autosaveSave,
   [ChapterKey.ManualSave]: manualSave,
+  [ChapterKey.InterruptedLore]: interruptedLore,
 }

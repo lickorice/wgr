@@ -38,3 +38,21 @@ export const manualSave: ChapterEntry = {
     },
   ],
 }
+
+export const interruptedLore: ChapterEntry = {
+  id: ChapterKey.InterruptedLore,
+  disableTrigger: true,
+  repeatable: true,
+  messages: [
+    {
+      tag: MessageTagKey.Meta,
+      content:
+        "You loaded a save that was currently in the middle of talking nonsense in the terminal.",
+    },
+    {
+      tag: MessageTagKey.Meta,
+      content:
+        "Unfortunately, said nonsense is tightly coupled to game unlocks. Re-playing its sequence now.",
+    },
+  ],
+}
