@@ -14,14 +14,22 @@ body {
     font-size: 14px;
     padding: 24px;
     height: 500px;
-    overflow-y: auto;
+    /* Always show a vertical scrollbar to avoid width-stutter when content changes. */
+    overflow-y: scroll;
     border-radius: 8px;
     border: 1px solid #333;
     line-height: 1.6;
+    position: relative; /* allow absolute-positioned status UI */
+    /* Keep space for scrollbars on modern browsers so layout doesn't jump */
+    scrollbar-gutter: stable both-edges;
 }
 
 .terminal-line {
     margin-bottom: 6px;
+    display: grid;
+    grid-template-columns: max-content 1fr; /* prefix column + content column */
+    gap: 12px; /* spacing between prefix and content */
+    align-items: start;
     white-space: pre-wrap; /* Preserves spacing and wraps long lines */
     /* Use Roboto Mono with a fallback to monospace */
 }
@@ -35,8 +43,39 @@ body {
 
 .terminal-prefix {
     color: #666;
-    margin-right: 12px;
     font-weight: 400;
+    white-space: nowrap; /* keep timestamp/tag on single line */
+    justify-self: start;
+}
+
+/* Ensure the message content (the second span) wraps and breaks sensibly */
+.terminal-line > span:not(.terminal-prefix) {
+    overflow-wrap: anywhere;
+    /* word-break fallback for older engines */
+    word-break: break-word;
+}
+
+/* Chapter playing status, positioned on the right of terminal */
+.chapter-status {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255,255,255,0.02);
+    padding: 6px 10px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.03);
+    z-index: 20;
+    font-size: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+
+.chapter-status .status-done {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.chapter-status .status-text {
+    font-weight: 600;
 }
 
 /* Blinking Cursor Effect */
@@ -48,6 +87,30 @@ body {
     margin-left: 4px;
     animation: blink 1s step-end infinite;
     vertical-align: middle;
+}
+
+/* Scrollbar styling */
+/* WebKit browsers (Chrome, Edge, Safari) */
+#terminal-container::-webkit-scrollbar {
+    width: 12px;
+}
+#terminal-container::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+}
+#terminal-container::-webkit-scrollbar-thumb {
+    background: rgba(105,240,174,0.14);
+    border-radius: 8px;
+    border: 3px solid rgba(0,0,0,0.12);
+}
+#terminal-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(105,240,174,0.22);
+}
+
+/* Firefox */
+#terminal-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(105,240,174,0.18) rgba(255,255,255,0.02);
 }
 
 @keyframes blink {

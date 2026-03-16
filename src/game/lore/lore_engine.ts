@@ -22,6 +22,11 @@ export class LoreEngine {
 
   private unlock: (toUnlock: UnlockId) => void
   private getGameSettings: () => Record<SettingsId, GameSettingState>
+  private queue: ChapterId[] = []
+  private isProcessing: boolean = false
+  private statusElement: HTMLElement | null = null
+  private statusListenersAttached: boolean = false
+  private repositionStatusBound: () => void
 
   constructor(containerId: string, helpers: LoreEngineHelpers) {
     this.chapters = ALL_CHAPTERS
@@ -29,6 +34,15 @@ export class LoreEngine {
     this.container = document.getElementById(containerId) || document.body
     this.unlock = helpers.unlock
     this.getGameSettings = helpers.getGameSettings
+    this.repositionStatusBound = this.repositionStatus.bind(this)
+
+    // Ensure container can position status element
+    if (
+      this.container &&
+      getComputedStyle(this.container).position === "static"
+    ) {
+      this.container.style.position = "relative"
+    }
   }
 
   private getTimestamp(): string {
@@ -83,24 +97,174 @@ export class LoreEngine {
     await this.sleep(postDelay)
   }
 
+  // Create or return the single status element used to show playing state
+  private getStatusElement(): HTMLElement {
+    if (this.statusElement) return this.statusElement
+
+    const el = document.createElement("div")
+    el.className = "chapter-status d-flex align-items-center gap-2"
+    // initial hidden state
+    el.style.display = "none"
+
+    // We'll append the status element to the container's parent so it can
+    // be absolutely positioned on top of the terminal without being part
+    // of the terminal's scrollable content (so it won't scroll away).
+    const overlayContainer = this.container.parentElement || document.body
+
+    // Ensure overlay container can be the positioning root
+    if (
+      overlayContainer &&
+      getComputedStyle(overlayContainer).position === "static"
+    ) {
+      overlayContainer.style.position = "relative"
+    }
+
+    // Set explicit positioning; computed coordinates are applied in repositionStatus
+    el.style.position = "absolute"
+    el.style.zIndex = "2000"
+    el.style.display = "none"
+
+    overlayContainer.appendChild(el)
+    this.statusElement = el
+
+    // Attach repositioning listeners once
+    if (!this.statusListenersAttached) {
+      // Reposition when window resizes or scrolls so the overlay stays over terminal
+      window.addEventListener("resize", this.repositionStatusBound)
+      window.addEventListener("scroll", this.repositionStatusBound, true)
+      // Also reposition on container mutations (size changes) using a ResizeObserver
+      try {
+        const ro = new ResizeObserver(this.repositionStatusBound)
+        ro.observe(this.container);
+        // store the observer reference on the element so it won't be GC'd
+        (
+          this.statusElement as HTMLElement & {
+            _resizeObserver?: ResizeObserver;
+          }
+        )._resizeObserver = ro
+      } catch {
+        // ResizeObserver not available: fallback to periodic reposition on an interval
+        setInterval(this.repositionStatusBound, 500)
+      }
+
+      this.statusListenersAttached = true
+    }
+
+    // initial placement
+    this.repositionStatus()
+    return el
+  }
+
+  // Compute and set the status element position so it visually sits on top-right of the terminal
+  private repositionStatus() {
+    if (!this.statusElement) return
+    const overlayContainer = this.container.parentElement || document.body
+
+    // Ensure overlay container is positioned (we set it earlier but double-check)
+    if (
+      overlayContainer &&
+      getComputedStyle(overlayContainer).position === "static"
+    ) {
+      overlayContainer.style.position = "relative"
+    }
+
+    // Use offsetTop/Left which are relative to the offsetParent (the overlay container)
+    const top = this.container.offsetTop + 12
+    // Compute distance from the right edge of the overlay container to the terminal's right edge
+    const right = Math.max(
+      12,
+      overlayContainer.clientWidth -
+        (this.container.offsetLeft + this.container.clientWidth) +
+        12,
+    )
+
+    this.statusElement.style.top = `${top}px`
+    this.statusElement.style.right = `${right}px`
+  }
+
+  private showPlayingStatus() {
+    const el = this.getStatusElement()
+    el.innerHTML = `
+      <div class="spinner-border spinner-border-sm text-info" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <div class="status-text text-info">PLAYING</div>
+    `
+    el.style.display = "flex"
+  }
+
+  private showDoneStatus() {
+    const el = this.getStatusElement()
+    el.innerHTML = `
+      <div class="text-success status-done">\u2713</div>
+      <div class="status-text text-success">DONE</div>
+    `
+    el.style.display = "flex"
+  }
+
+  private hideStatus() {
+    const el = this.getStatusElement()
+    // keep it visible briefly? For now hide immediately when no queue
+    el.style.display = "none"
+  }
+
+  // Enqueue a chapter to be played. Worker will process sequentially.
   public async playChapter(id: ChapterId) {
-    const chapter = this.chapters[id]
+    // simple guard: ignore unknown chapters
+    if (!this.chapters[id]) return
 
-    if (this.alreadyRead.includes(id)) {
-      if (!chapter.repeatable) return
-    } else {
-      this.alreadyRead.push(id)
+    this.queue.push(id)
+    // start worker if not already
+    if (!this.isProcessing) {
+      this.processQueue()
+    }
+  }
+
+  // Worker that processes queued chapters sequentially
+  private async processQueue() {
+    if (this.isProcessing) return
+    this.isProcessing = true
+
+    while (this.queue.length > 0) {
+      const id = this.queue.shift() as ChapterId
+      const chapter = this.chapters[id]
+      if (!chapter) continue
+
+      // skip if already read and not repeatable
+      if (this.alreadyRead.includes(id) && !chapter.repeatable) continue
+
+      // if not read, mark as read now (so prerequisites for later chapters can rely on this)
+      if (!this.alreadyRead.includes(id)) this.alreadyRead.push(id)
+
+      // check prerequisites; if not met, skip
+      if (!this.passesPrerequisites(chapter.prerequisites ?? [])) continue
+
+      // show status UI
+      this.showPlayingStatus()
+
+      for (const msg of chapter.messages) {
+        if (
+          !this.getGameSettings().PlayMetaMessages.value &&
+          msg.tag === MessageTagKey.Meta
+        )
+          continue
+        await this.typeMessage(msg)
+      }
+
+      // Mark unlocks handled inside typeMessage already
+
+      // show done state
+      this.showDoneStatus()
+
+      // keep the DONE state visible for a short moment, then hide if no more queued
+      await this.sleep(800)
+      if (this.queue.length === 0) {
+        this.hideStatus()
+      } else {
+        // if more queued, continue loop which will showPlayingStatus at top
+      }
     }
 
-    if (!this.passesPrerequisites(chapter.prerequisites ?? [])) return
-
-    for (const msg of chapter.messages) {
-      if (
-        !this.getGameSettings().PlayMetaMessages.value &&
-        msg.tag === MessageTagKey.Meta
-      )
-        continue
-      await this.typeMessage(msg)
-    }
+    this.isProcessing = false
   }
 }
