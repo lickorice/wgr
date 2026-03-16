@@ -54,6 +54,9 @@ export function attachActionsUI(container: HTMLElement, helpers: Helpers) {
           const { card: actionsCard, body: actionsCardBody } = createCard(
             actionState.spec.displayTitle,
             actionState.spec.flavorText,
+            gameSettings.PlayAutosaveMessages.value
+              ? actionState.spec.metaText
+              : undefined,
             gameSettings.UseSansSerifDescriptions?.value as boolean,
           )
 

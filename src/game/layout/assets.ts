@@ -39,7 +39,6 @@ export function attachAssetsUI(container: HTMLElement, helpers: Helpers) {
 
     let unlockedCount = 0
     Object.entries(gens).forEach(([genIdRaw, genState]) => {
-      console.log("STATE", genState)
       const genId = genIdRaw as GeneratorId
       if (genState.status === ContentStatusKey.Unlocked) {
         unlockedCount++
@@ -48,6 +47,9 @@ export function attachAssetsUI(container: HTMLElement, helpers: Helpers) {
           const { card, body } = createCard(
             genState.spec.longName,
             genState.spec.flavorText,
+            gameSettings.PlayMetaMessages.value
+              ? genState.spec.metaText
+              : undefined,
             gameSettings.UseSansSerifDescriptions?.value as boolean,
           )
 

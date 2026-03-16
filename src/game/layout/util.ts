@@ -1,6 +1,7 @@
 export function createCard(
   title: string,
   flavorText?: string,
+  metaText?: string,
   sanserif?: boolean,
 ) {
   const card = document.createElement("div")
@@ -25,6 +26,17 @@ export function createCard(
     }
     flavor.innerHTML = flavorText
     cardBody.appendChild(flavor)
+  }
+
+  if (metaText) {
+    const meta = document.createElement("div")
+    // subtle, compact meta text
+    meta.className = "card-text tag-meta small"
+    if (sanserif) {
+      meta.classList.add("sans-serif")
+    }
+    meta.innerHTML = metaText
+    cardBody.appendChild(meta)
   }
 
   card.appendChild(cardBody)

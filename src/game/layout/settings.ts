@@ -20,7 +20,7 @@ export const ALL_SETTINGS: Record<SettingsId, GameSetting> = {
     type: "boolean",
     longName: "Show all META messages",
     helperText:
-      "Blue messages (in terminal, with the META tag) are 'immersion-breaking' messages set by the developer. These include messages such as 'Game autosaved', and also developer commentary on lore pieces, in case the prose feels too thick.",
+      "Blue messages (in terminal, with the META tag) are 'immersion-breaking' messages set by the developer. These include messages such as 'Game autosaved', and also developer commentary on lore pieces, in case the prose feels too thick. May take a page refresh for it to fully take effect.",
   },
   [SettingsKey.PlayAutosaveMessages]: {
     id: SettingsKey.PlayAutosaveMessages,
@@ -44,7 +44,7 @@ export const ALL_SETTINGS: Record<SettingsId, GameSetting> = {
     type: "boolean",
     longName: "Use sans-serif font for descriptions",
     helperText:
-      "Use the Roboto sans-serif font for description text. Toggle on if you prefer a cleaner sans-serif look for descriptions.",
+      "Use the Roboto sans-serif font for description text. Toggle on if you prefer a cleaner sans-serif look for descriptions. May take a page refresh for it to fully take effect.",
   },
 }
 

@@ -17,6 +17,7 @@ export type GeneratorSpec = {
   growthFactor: number;
   weight: number;
   prerequisites?: UnlockId[];
+  metaText?: string;
 };
 
 export type GeneratorState = {
