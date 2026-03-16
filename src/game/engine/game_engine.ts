@@ -1,7 +1,7 @@
 import { LoreEngine } from "@game/lore/lore_engine"
 import { UnlockKey, type UnlockId } from "@game/types/unlocks"
 import { createCard, createButton, createProgress } from "@game/layout/util"
-import { attachSettingsUI } from "@game/layout/settings"
+import { attachSettingsUI, ALL_SETTINGS } from "@game/layout/settings"
 import { ChapterKey, type ChapterId } from "@game/types/lore"
 import { ContentStatusKey } from "@game/types/shared"
 import {
@@ -18,6 +18,7 @@ import {
 import { type ActionId, type ActionState } from "@game/types/actions"
 import { ALL_ACTIONS } from "@game/engine/data/actions"
 import { ALL_GENERATORS } from "@game/engine/data/generators"
+import { type SettingsId, type GameSettingState } from "@game/types/settings"
 
 const MenuBarKey = {
   Actions: "Actions",
@@ -37,6 +38,7 @@ export type GameSnapshot = {
   actions: Record<ActionId, ActionState>;
   unlocks: UnlockId[];
   resources: Record<ResourceId, ResourceState>;
+  gameSettings: Record<SettingsId, GameSettingState>;
   alreadyReadChapters?: ChapterId[];
   lastSaveDate?: number;
 };
@@ -76,6 +78,22 @@ export class GameEngine {
       return acc
     },
     {} as Record<GeneratorId, GeneratorState>,
+  )
+  gameSettings: Record<SettingsId, GameSettingState> = Object.entries(
+    ALL_SETTINGS,
+  ).reduce(
+    (acc, [id, setting]) => {
+      const settingsId = id as SettingsId
+
+      acc[settingsId] = {
+        id: settingsId,
+        setting: setting,
+        value: setting.defaultValue,
+        status: ContentStatusKey.Locked,
+      }
+      return acc
+    },
+    {} as Record<SettingsId, GameSettingState>,
   )
 
   private container: HTMLElement
@@ -177,6 +195,7 @@ export class GameEngine {
       // Convert Set to Array for JSON stringify
       unlocks: Array.from(this.unlocks),
       resources: this.resources,
+      gameSettings: this.gameSettings,
       lastSaveDate: Date.now(),
       alreadyReadChapters: this.loreEngine.alreadyRead,
     }
@@ -201,6 +220,7 @@ export class GameEngine {
 
       // 2. Restore Resources & Unlocks
       this.resources = data.resources
+      this.gameSettings = data.gameSettings
       this.unlocks = new Set(data.unlocks)
       this.loreEngine.alreadyRead = data.alreadyReadChapters ?? []
 
@@ -270,6 +290,17 @@ export class GameEngine {
         actionState.status = ContentStatusKey.Unlocked
       }
     })
+    Object.entries(this.gameSettings).map(([_, settingState]) => {
+      const actionIsLocked = settingState.status === ContentStatusKey.Locked
+      const actionPrerequisites = settingState.setting.prerequisites ?? [
+        UnlockKey.IntroductionFinished,
+      ]
+      if (actionIsLocked && this.passesPrerequisites(actionPrerequisites)) {
+        settingState.status = ContentStatusKey.Unlocked
+      }
+    })
+
+    console.log(this.gameSettings)
 
     // Play lore chapters if any:
     Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {
@@ -284,6 +315,7 @@ export class GameEngine {
         actions: this.actions,
         unlocks: Array.from(this.unlocks),
         resources: this.resources,
+        gameSettings: this.gameSettings,
       }),
     )
   }
@@ -324,6 +356,7 @@ export class GameEngine {
         actions: this.actions,
         unlocks: Array.from(this.unlocks),
         resources: this.resources,
+        gameSettings: this.gameSettings,
       })
     }
 
@@ -512,6 +545,16 @@ export class GameEngine {
       importSave: (s: string) => this.importSave(s),
       doAutosave: () => this.doAutosave(),
       playChapter: (id) => this.loreEngine.playChapter(id),
+      getGameSettings: () => this.gameSettings,
+      setGameSettingValue: (id: SettingsId, value: unknown) => {
+        const s = this.gameSettings[id]
+        if (!s) return
+        // Coerce the incoming value to the declared type for safety
+        const t = s.setting.type
+        if (t === "boolean") s.value = Boolean(value)
+        else if (t === "number") s.value = Number(value)
+        else s.value = String(value)
+      },
     })
 
     // Only selective render what's shown

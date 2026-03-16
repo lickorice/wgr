@@ -55,3 +55,52 @@ export function createProgress() {
 
   return { container, progressBar, progressLabel }
 }
+
+// Input helpers to keep settings UI consistent
+export function createTextInput(initial = "") {
+  const wrapper = document.createElement("div")
+  wrapper.className = "form-group"
+
+  const input = document.createElement("input")
+  input.type = "text"
+  input.className = "form-control form-control-sm"
+  input.value = String(initial)
+
+  wrapper.appendChild(input)
+
+  return { container: wrapper, input }
+}
+
+export function createNumberInput(initial = 0) {
+  const wrapper = document.createElement("div")
+  wrapper.className = "form-group"
+
+  const input = document.createElement("input")
+  input.type = "number"
+  input.className = "form-control form-control-sm"
+  input.value = String(initial)
+  input.setAttribute("step", "any")
+
+  wrapper.appendChild(input)
+
+  return { container: wrapper, input }
+}
+
+export function createToggle(initial = false) {
+  const wrapper = document.createElement("div")
+  wrapper.className = "form-check form-switch"
+
+  const input = document.createElement("input")
+  input.type = "checkbox"
+  input.className = "form-check-input"
+  input.checked = Boolean(initial)
+
+  const label = document.createElement("label")
+  label.className = "form-check-label small"
+  label.style.marginLeft = "0.5rem"
+
+  wrapper.appendChild(input)
+  wrapper.appendChild(label)
+
+  return { container: wrapper, input, label }
+}
