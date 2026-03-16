@@ -245,11 +245,11 @@ export class LoreEngine {
         this.currentlyReading = null
       } else {
         const chapter = this.chapters[this.currentlyReading]
-        this.currentlyReading = null
         // If encountered, then typically a save in the middle of playing a chapter was loaded.
         const metaWarnChapter = this.chapters[ChapterKey.InterruptedLore]
         await this.printChapter(metaWarnChapter)
         await this.printChapter(chapter)
+        this.currentlyReading = null // This has to be set afterwards. Otherwise the autosave will coerce itself into an infinite this.currentlyReading loop.
       }
     }
 
@@ -271,7 +271,7 @@ export class LoreEngine {
       this.currentlyReading = id
       this.showPlayingStatus()
 
-      this.printChapter(chapter)
+      await this.printChapter(chapter)
 
       // Mark unlocks handled inside typeMessage already
 

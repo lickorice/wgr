@@ -345,7 +345,10 @@ export class GameEngine {
       // Restore unlocks & already-read chapters
       this.unlocks = new Set(data.unlocks)
       this.loreEngine.alreadyRead = data.alreadyReadChapters ?? []
-      this.loreEngine.currentlyReading = data.currentlyReading ?? null
+      if (data.currentlyReading) {
+        this.loreEngine.currentlyReading = data.currentlyReading ?? null
+        this.loreEngine.playChapter(data.currentlyReading) // Doesn't matter which, since it reads off of currentlyReading
+      }
 
       // If the save's gameVersion differs from current, generate a small changelog
       const savedVersion = data.gameVersion ?? null
@@ -514,6 +517,7 @@ export class GameEngine {
     // Play lore chapters if any:
     Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {
       if (chapterEntry?.disableTrigger) return
+      if (this.loreEngine.alreadyRead.includes(chapterEntry.id)) return
       if (this.passesPrerequisites(chapterEntry.unlockPrerequisites ?? []))
         this.loreEngine.playChapter(chapterEntry.id)
     })
