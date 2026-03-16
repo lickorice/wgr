@@ -24,7 +24,7 @@ export class LoreEngine {
 
   private unlock: (toUnlock: UnlockId) => void
   private getGameSettings: () => Record<SettingsId, GameSettingState>
-  private queue: ChapterId[] = []
+  private queue: (ChapterId | Message[])[] = []
   private isProcessing: boolean = false
   private statusElement: HTMLElement | null = null
   private statusListenersAttached: boolean = false
@@ -211,20 +211,23 @@ export class LoreEngine {
     el.style.display = "none"
   }
 
-  // Enqueue a chapter to be played. Worker will process sequentially.
-  public async playChapter(id: ChapterId) {
+  // Enqueue a chapterId, or a sequence of messages to be played. Worker will process sequentially.
+  public async play(entry: ChapterId | Message[]) {
     // simple guard: ignore unknown chapters
-    if (!this.chapters[id]) return
+    if (!Array.isArray(entry)) {
+      if (!this.chapters[entry]) return
+    }
 
-    this.queue.push(id)
+    this.queue.push(entry)
     // start worker if not already
     if (!this.isProcessing) {
       this.processQueue()
     }
   }
 
-  private async printChapter(chapterEntry: ChapterEntry) {
-    for (const msg of chapterEntry.messages) {
+  private async printMessageSequence(messages: Message[]) {
+    this.showPlayingStatus()
+    for (const msg of messages) {
       if (
         !this.getGameSettings().PlayMetaMessages.value &&
         msg.tag === MessageTagKey.Meta
@@ -232,6 +235,11 @@ export class LoreEngine {
         continue
       await this.typeMessage(msg)
     }
+    this.showDoneStatus()
+  }
+
+  private async printChapter(chapterEntry: ChapterEntry) {
+    await this.printMessageSequence(chapterEntry.messages)
   }
 
   // Worker that processes queued chapters sequentially
@@ -254,40 +262,49 @@ export class LoreEngine {
     }
 
     while (this.queue.length > 0) {
-      const id = this.queue.shift() as ChapterId
-      const chapter = this.chapters[id]
-      if (!chapter) continue
-
-      // skip if already read and not repeatable
-      if (this.alreadyRead.includes(id) && !chapter.repeatable) continue
-
-      // if not read, mark as read now (so prerequisites for later chapters can rely on this)
-      if (!this.alreadyRead.includes(id)) this.alreadyRead.push(id)
-
-      // check prerequisites; if not met, skip
-      if (!this.passesPrerequisites(chapter.prerequisites ?? [])) continue
-
-      // show status UI
-      this.currentlyReading = id
-      this.showPlayingStatus()
-
-      await this.printChapter(chapter)
-
-      // Mark unlocks handled inside typeMessage already
-
-      // show done state
-      this.currentlyReading = null
-      this.showDoneStatus()
-
-      // keep the DONE state visible for a short moment, then hide if no more queued
-      await this.sleep(800)
-      if (this.queue.length === 0) {
-        this.hideStatus()
+      const nextEntry = this.queue.shift()
+      if (nextEntry === undefined) continue
+      if (Array.isArray(nextEntry)) {
+        await this.printMessageSequence(nextEntry)
       } else {
-        // if more queued, continue loop which will showPlayingStatus at top
+        await this.printHardcodedChapter(nextEntry)
       }
     }
 
     this.isProcessing = false
+  }
+
+  private async printHardcodedChapter(id: ChapterId) {
+    const chapter = this.chapters[id]
+    if (!chapter) return
+
+    // skip if already read and not repeatable
+    if (this.alreadyRead.includes(id) && !chapter.repeatable) return
+
+    // if not read, mark as read now (so prerequisites for later chapters can rely on this)
+    if (!this.alreadyRead.includes(id)) this.alreadyRead.push(id)
+
+    // check prerequisites; if not met, skip
+    if (!this.passesPrerequisites(chapter.prerequisites ?? [])) return
+
+    // show status UI
+    this.currentlyReading = id
+    this.showPlayingStatus()
+
+    await this.printChapter(chapter)
+
+    // Mark unlocks handled inside typeMessage already
+
+    // show done state
+    this.currentlyReading = null
+    this.showDoneStatus()
+
+    // keep the DONE state visible for a short moment, then hide if no more queued
+    await this.sleep(800)
+    if (this.queue.length === 0) {
+      this.hideStatus()
+    } else {
+      // if more queued, continue loop which will showPlayingStatus at top
+    }
   }
 }

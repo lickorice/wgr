@@ -46,6 +46,7 @@ const MetricsScreenKey = {
 
 type MetricsScreenId = (typeof MetricsScreenKey)[keyof typeof MetricsScreenKey];
 
+// TODO: This is smelling like type bloat. Refactor soon.
 export type GameSnapshot = {
   actions: Record<ActionId, ActionState>;
   unlocks: UnlockId[];
@@ -56,6 +57,9 @@ export type GameSnapshot = {
   alreadyReadChapters?: ChapterId[];
   currentlyReading?: ChapterId | null;
   lastSaveDate?: number;
+
+  // For use in action effects
+  play?: (entry: ChapterId | Message[]) => void;
 };
 
 // Current game version string. Keep in sync with package.json/version when releasing.
@@ -196,7 +200,7 @@ export class GameEngine {
 
   private doAutosave(playMessage: boolean = false) {
     if (playMessage && this.gameSettings.PlayAutosaveMessages.value) {
-      this.loreEngine.playChapter(ChapterKey.AutosaveSave)
+      this.loreEngine.play(ChapterKey.AutosaveSave)
     }
     localStorage.setItem("gameState", this.exportSave())
   }
@@ -230,9 +234,9 @@ export class GameEngine {
     if (savedData) {
       this.importSave(savedData)
       if (this.gameSettings.PlayAutosaveMessages.value)
-        this.loreEngine.playChapter(ChapterKey.AutosaveLoad)
+        this.loreEngine.play(ChapterKey.AutosaveLoad)
     } else {
-      this.loreEngine.playChapter(0)
+      this.loreEngine.play(0)
     }
 
     // Start the main tick loop (1s)
@@ -347,7 +351,7 @@ export class GameEngine {
       this.loreEngine.alreadyRead = data.alreadyReadChapters ?? []
       if (data.currentlyReading) {
         this.loreEngine.currentlyReading = data.currentlyReading ?? null
-        this.loreEngine.playChapter(data.currentlyReading) // Doesn't matter which, since it reads off of currentlyReading
+        this.loreEngine.play(data.currentlyReading) // Doesn't matter which, since it reads off of currentlyReading
       }
 
       // If the save's gameVersion differs from current, generate a small changelog
@@ -416,17 +420,7 @@ export class GameEngine {
             tag: MessageTagKey.Meta,
           })
 
-        // Inject a temporary, repeatable chapter so LoreEngine can show the changelog
-        const TEMP_CHAPTER_ID = 20000 as ChapterId
-        this.loreEngine.chapters = {
-          ...this.loreEngine.chapters,
-          [TEMP_CHAPTER_ID]: {
-            id: TEMP_CHAPTER_ID,
-            messages: msgs,
-            repeatable: true,
-          },
-        }
-        this.loreEngine.playChapter(TEMP_CHAPTER_ID)
+        this.loreEngine.play(msgs)
       }
 
       // 3. Restore Actions (Merge spec back in)
@@ -519,7 +513,7 @@ export class GameEngine {
       if (chapterEntry?.disableTrigger) return
       if (this.loreEngine.alreadyRead.includes(chapterEntry.id)) return
       if (this.passesPrerequisites(chapterEntry.unlockPrerequisites ?? []))
-        this.loreEngine.playChapter(chapterEntry.id)
+        this.loreEngine.play(chapterEntry.id)
     })
 
     // Finally, render everything in gameLogicUI:
@@ -572,6 +566,7 @@ export class GameEngine {
         resources: this.resources,
         generators: this.generators,
         gameSettings: this.gameSettings,
+        play: (e) => this.loreEngine.play(e),
       })
     }
 
@@ -716,7 +711,7 @@ export class GameEngine {
           exportSave: () => this.exportSave(),
           importSave: (s: string) => this.importSave(s),
           doAutosave: () => this.doAutosave(),
-          playChapter: (id) => this.loreEngine.playChapter(id),
+          play: (id) => this.loreEngine.play(id),
           getGameSettings: () => this.gameSettings,
           setGameSettingValue: (id: SettingsId, value: unknown) => {
             const s = this.gameSettings[id]

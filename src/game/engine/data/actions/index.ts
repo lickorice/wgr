@@ -1,6 +1,7 @@
 import { UnlockKey } from "@game/types/unlocks"
 import { ActionKey, type ActionId, type ActionSpec } from "@game/types/actions"
 import { ResourceKey } from "@game/types/resources"
+import { MessageTagKey } from "@game/types/lore"
 
 export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
   [ActionKey.ValidateHumanity]: {
@@ -78,6 +79,21 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
       },
     ],
     prerequisites: [UnlockKey.AssetLore],
+    effect: (gs) => {
+      const oldEff = gs.generators.PlanetaryLumiumCollector.efficiency
+      gs.generators.PlanetaryLumiumCollector.efficiency += 0.2
+      const newEff = gs.generators.PlanetaryLumiumCollector.efficiency
+      gs.play!([
+        {
+          tag: MessageTagKey.Info,
+          content: "Oscillator-type detritus minimizer now functional.",
+        },
+        {
+          tag: MessageTagKey.Success,
+          content: `Efficiency increased from ${oldEff.toFixed(2)} -> ${newEff.toFixed(2)}`,
+        },
+      ])
+    },
   },
   [ActionKey.AlignSolarPanels]: {
     id: ActionKey.AlignSolarPanels,
@@ -92,6 +108,23 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
       },
     ],
     prerequisites: [UnlockKey.AssetLore],
+    effect: (gs) => {
+      console.log("HEY", gs)
+      const oldEff = gs.generators.PlanetaryLumiumCollector.efficiency
+      gs.generators.PlanetaryLumiumCollector.efficiency += 0.5
+      const newEff = gs.generators.PlanetaryLumiumCollector.efficiency
+      gs.play!([
+        {
+          tag: MessageTagKey.Info,
+          content:
+            "Alignment algorithm now correctly follows current point of maximum stellar emission.",
+        },
+        {
+          tag: MessageTagKey.Success,
+          content: `Efficiency increased from ${oldEff.toFixed(2)} -> ${newEff.toFixed(2)}`,
+        },
+      ])
+    },
   },
 
   // Lore entries

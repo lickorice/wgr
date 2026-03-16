@@ -4,7 +4,7 @@ import {
   createNumberInput,
   createToggle,
 } from "@game/layout/util"
-import { ChapterKey, type ChapterId } from "@game/types/lore"
+import { type Message, ChapterKey, type ChapterId } from "@game/types/lore"
 import {
   SettingsKey,
   type SettingsId,
@@ -52,7 +52,7 @@ type Helpers = {
   exportSave: () => string;
   importSave: (s: string) => void;
   doAutosave: () => void;
-  playChapter: (id: ChapterId) => void;
+  play: (id: ChapterId | Message[]) => void;
   getGameSettings: () => Record<SettingsId, GameSettingState>;
   setGameSettingValue: (id: SettingsId, value: unknown) => void;
 };
@@ -211,7 +211,7 @@ export function attachSettingsUI(container: HTMLElement, helpers: Helpers) {
     // Manual save: call autosave routine
     const manualSaveButton = createButton("Manual Save", () => {
       helpers.doAutosave()
-      helpers.playChapter(ChapterKey.ManualSave)
+      helpers.play(ChapterKey.ManualSave)
     })
 
     // Reset save: confirmation then clear and reload
