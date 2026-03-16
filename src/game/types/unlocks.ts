@@ -5,6 +5,13 @@ export const UnlockKey = {
   StorageUI: 3,
   BootstrapperUI: 4,
   SettingsUI: 5,
+  AssetsUI: 6,
+  AdvancedMetricsUI: 7,
+  LandedBodyMetrics: 8,
+  EnableStorage: 9,
+
+  AssetLore: 8000,
+  ResearchLore: 8001,
 
   Chapter1Lore: 9000,
   LoreWhoAmI: 10000,

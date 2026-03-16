@@ -18,9 +18,9 @@ export const ALL_SETTINGS: Record<SettingsId, GameSetting> = {
     id: SettingsKey.PlayMetaMessages,
     defaultValue: false,
     type: "boolean",
-    longName: "Play META messages in terminal",
+    longName: "Show all META messages",
     helperText:
-      "Blue messages with the META tag are 'immersion-breaking' messages set by the developer. These include messages such as 'Game autosaved', and also developer commentary on lore pieces, in case the prose feels too thick.",
+      "Blue messages (in terminal, with the META tag) are 'immersion-breaking' messages set by the developer. These include messages such as 'Game autosaved', and also developer commentary on lore pieces, in case the prose feels too thick.",
   },
   [SettingsKey.PlayAutosaveMessages]: {
     id: SettingsKey.PlayAutosaveMessages,

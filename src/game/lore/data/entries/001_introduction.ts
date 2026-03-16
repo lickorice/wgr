@@ -94,11 +94,80 @@ export const postIntroduction: ChapterEntry = {
     },
     {
       tag: MessageTagKey.Info,
-      content: "Initializing [boot.strapper]...OK",
+      content: "Initializing [boot.strapper]...FAIL",
+    },
+    {
+      tag: MessageTagKey.Err,
+      content:
+        "Module [boot.strapper] integrity failure, but in recoverable state.",
+    },
+    {
+      tag: MessageTagKey.Warn,
+      content: "Executing low-power code correction in background...",
       delay: 2,
-      unlocks: [UnlockKey.BootstrapperUI, UnlockKey.Chapter1Lore],
+    },
+    {
+      tag: MessageTagKey.Success,
+      content: "Estimated time left: 3.54e11 seconds.",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "Waiting for [HU-M4N] to decide.",
+      unlocks: [UnlockKey.Chapter1Lore],
     },
   ],
   prerequisites: [ChapterKey.Introduction], // Note: Fixed logic from PostIntroduction to Introduction
   unlockPrerequisites: [UnlockKey.HumanityValidated],
+}
+
+export const postAssetUnlock: ChapterEntry = {
+  id: ChapterKey.AssetLore,
+  messages: [
+    {
+      tag: MessageTagKey.Info,
+      content: "Initializing [management.assets] module...OK",
+    },
+    {
+      tag: MessageTagKey.Warn,
+      content:
+        "Detected [tag:auxilliary] in [management.assets] module definition. Attempting to establish connection.",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "Connecting to [management.assets]...",
+    },
+    { tag: MessageTagKey.Success, content: "Successfully connected." },
+    {
+      tag: MessageTagKey.Info,
+      content: "Listing onboard assets...",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content:
+        "-- [SP-BEU519] Planetary Lumium Collector\n-- installed:\n   -- [id:ab62ef4c] OPERATIONAL",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content:
+        "-- [RF-BEU243] Regolith Accumulator\n-- installed:\n   -- [id:fa0e00f1] DISABLED (LOW-POWER-MODE)",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content:
+        "-- [CT-BEU152] Molecular Assembler\n-- installed:\n   -- [id:c0deb4be] DISABLED (LOW-POWER-MODE)",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content:
+        "Generating action proposals for [HU-M4N] interface to ensure best statistical chance for mission success...",
+    },
+    {
+      tag: MessageTagKey.Success,
+      content:
+        "New proposals generated, driver initialized to [HU-M4N] interface.",
+      unlocks: [UnlockKey.AssetLore],
+    },
+  ],
+  prerequisites: [ChapterKey.PostIntroduction], // Note: Fixed logic from PostIntroduction to Introduction
+  unlockPrerequisites: [UnlockKey.AssetsUI],
 }

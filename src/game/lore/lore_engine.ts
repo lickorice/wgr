@@ -188,7 +188,7 @@ export class LoreEngine {
       <div class="spinner-border spinner-border-sm text-info" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
-      <div class="status-text text-info">PLAYING</div>
+      <div class="status-text text-info">PROCESSING</div>
     `
     el.style.display = "flex"
   }

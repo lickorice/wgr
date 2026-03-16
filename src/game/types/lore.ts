@@ -3,6 +3,7 @@ import { type UnlockId } from "./unlocks"
 export const ChapterKey = {
   Introduction: 0,
   PostIntroduction: 1,
+  AssetLore: 2,
 
   LoreWhoAmI: 800,
 

@@ -6,6 +6,16 @@ import { type GameSnapshot } from "@game/engine/game_engine"
 
 export const ActionKey = {
   ValidateHumanity: 0,
+  //   LowPowerDiagnostics: 1,
+  ConnectToAssetsInterface: 2,
+  //   EnableStorageExpansion: 3,
+  EnableResearch: 4,
+  EnableAdvancedInternalMetrics: 5,
+  //   EnableLandedBodyMetrics: 6,
+
+  // Solar panel upgrades
+  SanitizeSolarPanels: 100,
+  AlignSolarPanels: 101,
   WhoAmI: 10000,
 } as const
 
@@ -23,6 +33,8 @@ export type ActionSpec = {
   unlocks?: UnlockId[];
   // Custom effects that pass in a GameSnapshot
   effect?: (game_snapshot: GameSnapshot) => void;
+  // Developer notes hehe
+  metaText?: string;
 };
 
 export type ActionState = {
