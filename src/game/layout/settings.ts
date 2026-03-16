@@ -198,7 +198,10 @@ export function attachSettingsUI(container: HTMLElement, helpers: Helpers) {
       if (!ok) return
       try {
         helpers.importSave(input)
+        helpers.doAutosave()
         alert("Import successful. UI will refresh to reflect imported state.")
+        // Reload to reset in-memory state
+        location.reload()
       } catch (e) {
         alert("Failed to import save. Check the string and try again.")
         console.error(e)

@@ -4,7 +4,12 @@ import { createProgress } from "@game/layout/util"
 import { attachSettingsUI, ALL_SETTINGS } from "@game/layout/settings"
 import { attachActionsUI } from "@game/layout/actions"
 import { attachAssetsUI } from "@game/layout/assets"
-import { ChapterKey, type ChapterId } from "@game/types/lore"
+import {
+  ChapterKey,
+  type ChapterId,
+  MessageTagKey,
+  type Message,
+} from "@game/types/lore"
 import { ContentStatusKey } from "@game/types/shared"
 import {
   GeneratorKey,
@@ -46,9 +51,14 @@ export type GameSnapshot = {
   unlocks: UnlockId[];
   resources: Record<ResourceId, ResourceState>;
   gameSettings: Record<SettingsId, GameSettingState>;
+  // Optional version string to detect save-version changes and assist migrations
+  gameVersion?: string;
   alreadyReadChapters?: ChapterId[];
   lastSaveDate?: number;
 };
+
+// Current game version string. Keep in sync with package.json/version when releasing.
+const GAME_VERSION = "0.0.0"
 
 export class GameEngine {
   actions: Record<ActionId, ActionState> = Object.entries(ALL_ACTIONS).reduce(
@@ -241,6 +251,7 @@ export class GameEngine {
       unlocks: Array.from(this.unlocks),
       resources: this.resources,
       gameSettings: this.gameSettings,
+      gameVersion: GAME_VERSION,
       lastSaveDate: Date.now(),
       alreadyReadChapters: this.loreEngine.alreadyRead,
     }
@@ -263,11 +274,158 @@ export class GameEngine {
       // 1. Calculate Offline Progress
       if (data.lastSaveDate) this.calculateOfflineProgress(data.lastSaveDate)
 
-      // 2. Restore Resources & Unlocks
-      this.resources = data.resources
-      this.gameSettings = data.gameSettings
+      // 2. Restore / migrate Resources, Settings, Generators & Unlocks
+      // Merge saved resources into current defaults (constructor set defaults)
+      const savedResources = (data.resources ?? {}) as Partial<
+        Record<ResourceId, ResourceState>
+      >
+      // Ensure existing default resources are preserved, but overwritten by saved values
+      Object.keys(this.resources).forEach((k) => {
+        const key = k as ResourceId
+        if (savedResources[key])
+          this.resources[key] = savedResources[key] as ResourceState
+      })
+      // Include any extra resources present in the save that the defaults don't know about
+      Object.entries(savedResources).forEach(([k, v]) => {
+        const key = k as ResourceId
+        if (!this.resources[key]) this.resources[key] = v as ResourceState
+      })
+
+      // Merge settings: ensure every setting in ALL_SETTINGS exists, re-attach spec
+      const savedSettings = (data.gameSettings ?? {}) as Partial<
+        Record<SettingsId, GameSettingState>
+      >
+      Object.entries(ALL_SETTINGS).forEach(([id, setting]) => {
+        const sId = id as SettingsId
+        const defaultState = this.gameSettings[sId]
+        const saved = savedSettings[sId]
+        if (saved) {
+          this.gameSettings[sId] = {
+            ...defaultState,
+            ...saved,
+            setting: setting,
+          }
+        } else {
+          this.gameSettings[sId] = defaultState
+        }
+      })
+
+      // Merge generators: ensure ALL_GENERATORS keys exist and re-attach spec
+      const savedGenerators = (
+        data as unknown as {
+          generators?: Partial<Record<GeneratorId, GeneratorState>>;
+        }
+      ).generators
+      Object.entries(ALL_GENERATORS).forEach(([id, spec]) => {
+        const generatorId = id as GeneratorId
+        const defaultGen: GeneratorState = {
+          id: generatorId,
+          spec,
+          status: ContentStatusKey.Locked,
+          amount: generatorId === GeneratorKey.PlanetaryLumiumCollector ? 1 : 0,
+          efficiency: 0.2,
+        }
+        const saved = savedGenerators?.[generatorId]
+        this.generators[generatorId] = {
+          ...defaultGen,
+          ...(saved ?? {}),
+          spec,
+        }
+      })
+      // Preserve any saved generators that do not exist in ALL_GENERATORS (avoid data loss)
+      if (savedGenerators) {
+        Object.entries(savedGenerators).forEach(([id, saved]) => {
+          if (!this.generators[id as GeneratorId]) {
+            this.generators[id as GeneratorId] = {
+              ...saved,
+              spec: ALL_GENERATORS[id as GeneratorId] ?? saved.spec,
+            }
+          }
+        })
+      }
+
+      // Restore unlocks & already-read chapters
       this.unlocks = new Set(data.unlocks)
       this.loreEngine.alreadyRead = data.alreadyReadChapters ?? []
+
+      // If the save's gameVersion differs from current, generate a small changelog
+      const savedVersion = data.gameVersion ?? null
+      if (savedVersion !== GAME_VERSION) {
+        const msgs: Message[] = []
+        msgs.push({
+          content: `Loaded save ${savedVersion ?? "<unknown>"} → current ${GAME_VERSION}`,
+          tag: MessageTagKey.Meta,
+        })
+
+        // Generators added/removed
+        const savedGenKeys = Object.keys(
+          (data as unknown as { generators?: Record<string, unknown> })
+            .generators ?? {},
+        )
+        const curGenKeys = Object.keys(ALL_GENERATORS)
+        const addedGens = curGenKeys.filter((k) => !savedGenKeys.includes(k))
+        const removedGens = savedGenKeys.filter((k) => !curGenKeys.includes(k))
+        if (addedGens.length)
+          msgs.push({
+            content: `New generator types: ${addedGens.join(", ")}`,
+            tag: MessageTagKey.Meta,
+          })
+        if (removedGens.length)
+          msgs.push({
+            content: `Generator types removed in this build: ${removedGens.join(", ")}`,
+            tag: MessageTagKey.Meta,
+          })
+
+        // Settings added/removed
+        const savedSetKeys = Object.keys(
+          (data as unknown as { gameSettings?: Record<string, unknown> })
+            .gameSettings ?? {},
+        )
+        const curSetKeys = Object.keys(ALL_SETTINGS)
+        const addedSets = curSetKeys.filter((k) => !savedSetKeys.includes(k))
+        const removedSets = savedSetKeys.filter((k) => !curSetKeys.includes(k))
+        if (addedSets.length)
+          msgs.push({
+            content: `New settings: ${addedSets.join(", ")}`,
+            tag: MessageTagKey.Meta,
+          })
+        if (removedSets.length)
+          msgs.push({
+            content: `Settings removed in this build: ${removedSets.join(", ")}`,
+            tag: MessageTagKey.Meta,
+          })
+
+        // Resources added/removed (compare against merged current resources)
+        const savedResKeys = Object.keys(
+          (data as unknown as { resources?: Record<string, unknown> })
+            .resources ?? {},
+        )
+        const curResKeys = Object.keys(this.resources)
+        const addedRes = curResKeys.filter((k) => !savedResKeys.includes(k))
+        const removedRes = savedResKeys.filter((k) => !curResKeys.includes(k))
+        if (addedRes.length)
+          msgs.push({
+            content: `New resources: ${addedRes.join(", ")}`,
+            tag: MessageTagKey.Meta,
+          })
+        if (removedRes.length)
+          msgs.push({
+            content: `Resources removed in this build: ${removedRes.join(", ")}`,
+            tag: MessageTagKey.Meta,
+          })
+
+        // Inject a temporary, repeatable chapter so LoreEngine can show the changelog
+        const TEMP_CHAPTER_ID = 20000 as ChapterId
+        this.loreEngine.chapters = {
+          ...this.loreEngine.chapters,
+          [TEMP_CHAPTER_ID]: {
+            id: TEMP_CHAPTER_ID,
+            messages: msgs,
+            repeatable: true,
+          },
+        }
+        this.loreEngine.playChapter(TEMP_CHAPTER_ID)
+      }
 
       // 3. Restore Actions (Merge spec back in)
       Object.entries(data.actions).forEach(([id, state]) => {
