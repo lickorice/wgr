@@ -244,9 +244,10 @@ export class LoreEngine {
         // Programmed messages, nothing to worry about:
         this.currentlyReading = null
       } else {
+        const chapter = this.chapters[this.currentlyReading]
+        this.currentlyReading = null
         // If encountered, then typically a save in the middle of playing a chapter was loaded.
         const metaWarnChapter = this.chapters[ChapterKey.InterruptedLore]
-        const chapter = this.chapters[this.currentlyReading]
         await this.printChapter(metaWarnChapter)
         await this.printChapter(chapter)
       }
