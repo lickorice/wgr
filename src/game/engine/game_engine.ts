@@ -571,39 +571,39 @@ export class GameEngine {
   }
 
   private renderLoop() {
-    // Render actions container if unlocked
     this.renderMenuBar()
     // Render metrics
     this.renderMetricsScreen()
-    // Render settings (build UI if unlocked)
-    attachSettingsUI(this.settingsContainer, {
-      exportSave: () => this.exportSave(),
-      importSave: (s: string) => this.importSave(s),
-      doAutosave: () => this.doAutosave(),
-      playChapter: (id) => this.loreEngine.playChapter(id),
-      getGameSettings: () => this.gameSettings,
-      setGameSettingValue: (id: SettingsId, value: unknown) => {
-        const s = this.gameSettings[id]
-        if (!s) return
-        // Coerce the incoming value to the declared type for safety
-        const t = s.setting.type
-        if (t === "boolean") s.value = Boolean(value)
-        else if (t === "number") s.value = Number(value)
-        else s.value = String(value)
-        // If the autosave interval was changed, restart the autosave loop
-        if (id === SettingsKey.AutosaveInterval) {
-          // End current loop and start a new one with the updated value.
-          // Don't force an immediate save; just restart the timer using the
-          // new interval. The reset function enforces a minimum of 5s.
-          this.resetAutosaveTimer()
-        }
-      },
-    })
 
-    // Only selective render what's shown
+    // Only selectively render what's shown
     switch (this.currentMenuBar) {
       case MenuBarKey.Actions:
         this.renderActionsScreen()
+        break
+      case MenuBarKey.Settings:
+        attachSettingsUI(this.settingsContainer, {
+          exportSave: () => this.exportSave(),
+          importSave: (s: string) => this.importSave(s),
+          doAutosave: () => this.doAutosave(),
+          playChapter: (id) => this.loreEngine.playChapter(id),
+          getGameSettings: () => this.gameSettings,
+          setGameSettingValue: (id: SettingsId, value: unknown) => {
+            const s = this.gameSettings[id]
+            if (!s) return
+            // Coerce the incoming value to the declared type for safety
+            const t = s.setting.type
+            if (t === "boolean") s.value = Boolean(value)
+            else if (t === "number") s.value = Number(value)
+            else s.value = String(value)
+            // If the autosave interval was changed, restart the autosave loop
+            if (id === SettingsKey.AutosaveInterval) {
+              // End current loop and start a new one with the updated value.
+              // Don't force an immediate save; just restart the timer using the
+              // new interval. The reset function enforces a minimum of 5s.
+              this.resetAutosaveTimer()
+            }
+          },
+        })
         break
     }
 
