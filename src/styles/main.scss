@@ -132,6 +132,15 @@ body {
   100% { opacity: 1; }
 }
 
+@keyframes new-item-glow {
+    from {
+        box-shadow: 0 0 0 1px rgba(105,240,174,0.18), 0 0 8px rgba(105,240,174,0.18);
+    }
+    to {
+        box-shadow: 0 0 0 1px rgba(105,240,174,0.4), 0 0 22px rgba(105,240,174,0.34);
+    }
+}
+
 .terminal-boot {
   animation: flickerFadeIn 0.8s ease-in-out;
   /* Optional: Add a slight scanline jitter during fade */
@@ -213,6 +222,22 @@ body {
     background: rgba(105,240,174,0.08);
     color: #69f0ae;
     box-shadow: none;
+}
+
+.new-item {
+    box-shadow: 0 0 0 1px rgba(105,240,174,0.28), 0 0 16px rgba(105,240,174,0.28);
+    animation: new-item-glow 1.8s ease-in-out infinite alternate;
+}
+
+.primary-nav.new-item {
+    background: rgba(105,240,174,0.12);
+    color: #9cffcc;
+}
+
+.action-card.new-item,
+#assets-list .new-item,
+#settings-list .new-item {
+    border-color: rgba(105,240,174,0.4);
 }
 
 /* Progress tweaks: make label readable */

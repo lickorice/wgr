@@ -96,6 +96,7 @@ export function attachSettingsUI(
 
       const row = document.createElement("div")
       row.className = "d-flex align-items-center gap-2 mb-2"
+      row.classList.toggle("new-item", state.status === ContentStatusKey.New)
 
       const labelContainer = document.createElement("div")
       labelContainer.className = "flex-grow-1 small"

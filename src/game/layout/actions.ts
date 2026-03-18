@@ -40,7 +40,7 @@ export function attachActionsUI(
 
     let unlockedCount = 0
     Object.entries(actions).forEach(([actionId, actionState]) => {
-      if (actionState.status === ContentStatusKey.Unlocked) {
+      if (actionState.status !== ContentStatusKey.Locked) {
         unlockedCount++
 
         if (!actionState.element) {
@@ -78,11 +78,19 @@ export function attachActionsUI(
           actionsCardBody.appendChild(controls)
 
           actionsCard.id = `action-${actionId}`
+          actionsCard.classList.toggle(
+            "new-item",
+            actionState.status === ContentStatusKey.New,
+          )
 
           actionsList!.appendChild(actionsCard)
           actionState.element = actionsCard
         } else {
           // If element already exists, ensure it's appended to the list
+          actionState.element.classList.toggle(
+            "new-item",
+            actionState.status === ContentStatusKey.New,
+          )
           actionsList!.appendChild(actionState.element)
         }
       }

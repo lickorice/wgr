@@ -36,7 +36,7 @@ export function attachAssetsUI(
     let unlockedCount = 0
     Object.entries(gens).forEach(([genIdRaw, genState]) => {
       const genId = genIdRaw as GeneratorId
-      if (genState.status === ContentStatusKey.Unlocked) {
+      if (genState.status !== ContentStatusKey.Locked) {
         unlockedCount++
 
         if (!elementCache.has(genId)) {
@@ -85,6 +85,10 @@ export function attachAssetsUI(
           body.appendChild(effEl)
 
           card.id = `asset-${genId}`
+          card.classList.toggle(
+            "new-item",
+            genState.status === ContentStatusKey.New,
+          )
 
           list!.appendChild(card)
           elementCache.set(genId, card)
@@ -100,7 +104,12 @@ export function attachAssetsUI(
           })
         } else {
           // ensure cached element present in list
-          list!.appendChild(elementCache.get(genId) as HTMLElement)
+          const existingCard = elementCache.get(genId) as HTMLElement
+          existingCard.classList.toggle(
+            "new-item",
+            genState.status === ContentStatusKey.New,
+          )
+          list!.appendChild(existingCard)
         }
       }
     })

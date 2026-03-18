@@ -7,8 +7,9 @@ import type { UnlockId } from "@game/types/unlocks"
 
 export const ContentStatusKey = {
   Locked: 0,
-  Unlocked: 1,
-  Completed: 2,
+  New: 1,
+  Unlocked: 2,
+  Completed: 3,
 } as const
 
 export type ContentStatus =

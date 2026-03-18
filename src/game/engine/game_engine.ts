@@ -42,6 +42,15 @@ const MenuBarKey = {
 
 type MenuBarId = (typeof MenuBarKey)[keyof typeof MenuBarKey];
 
+const MENU_CONTENT_STATUS_MAP: Record<
+  MenuBarId,
+  Array<"actions" | "generators" | "gameSettings">
+> = {
+  [MenuBarKey.Actions]: ["actions"],
+  [MenuBarKey.Assets]: ["generators"],
+  [MenuBarKey.Settings]: ["gameSettings"],
+}
+
 const MetricsScreenKey = {
   Storage: "Storage",
   Bootstrapper: "Bootstrapper",
@@ -505,7 +514,7 @@ export class GameEngine {
         UnlockKey.IntroductionFinished,
       ]
       if (actionIsLocked && this.passesPrerequisites(actionPrerequisites)) {
-        actionState.status = ContentStatusKey.Unlocked
+        actionState.status = ContentStatusKey.New
       }
     })
     Object.entries(this.gameSettings).map(([_, settingState]) => {
@@ -514,7 +523,7 @@ export class GameEngine {
         UnlockKey.IntroductionFinished,
       ]
       if (settingIsLocked && this.passesPrerequisites(settingPrerequisites)) {
-        settingState.status = ContentStatusKey.Unlocked
+        settingState.status = ContentStatusKey.New
       }
     })
     Object.entries(this.generators).map(([_, genState]) => {
@@ -523,7 +532,7 @@ export class GameEngine {
         UnlockKey.AssetsUIUnlock,
       ]
       if (genIsLocked && this.passesPrerequisites(settingPrerequisites)) {
-        genState.status = ContentStatusKey.Unlocked
+        genState.status = ContentStatusKey.New
       }
     })
 
@@ -611,13 +620,21 @@ export class GameEngine {
 
     Object.entries(MENU_BAR_LOOKUP).map(([_key, prerequisites]) => {
       const key = _key as MenuBarId
-      if (this.menuBarItems.has(key)) return
       if (this.passesPrerequisites(prerequisites)) {
+        const existingButton = this.menuBar.querySelector(
+          `[data-menu-bar-id="${key}"]`,
+        ) as HTMLAnchorElement | null
+
+        if (existingButton) {
+          existingButton.classList.toggle("new-item", this.hasNewItems(key))
+          return
+        }
+
         this.menuBarItems.add(key)
 
         const menuBarButton = document.createElement("a")
+        menuBarButton.dataset.menuBarId = key
         menuBarButton.onclick = () => {
-          this.currentMenuBar = key
           this.setActiveContainer(key)
 
           const allMenuLinks = document.querySelectorAll(".primary-nav")
@@ -631,6 +648,7 @@ export class GameEngine {
         } else {
           menuBarButton.className = primaryNavClasses
         }
+        menuBarButton.classList.toggle("new-item", this.hasNewItems(key))
         menuBarButton.innerHTML = key
 
         this.menuBar.appendChild(menuBarButton)
@@ -695,6 +713,10 @@ export class GameEngine {
   }
 
   private setActiveContainer(menuBarId: MenuBarId) {
+    if (this.currentMenuBar !== menuBarId) {
+      this.markMenuItemsAsSeen(this.currentMenuBar)
+    }
+
     const MENU_BAR_MAP: Record<MenuBarId, HTMLElement> = {
       [MenuBarKey.Actions]: this.actionsContainer,
       [MenuBarKey.Assets]: this.assetsContainer,
@@ -704,6 +726,25 @@ export class GameEngine {
     this.primaryContainer.innerHTML = ""
     this.primaryContainer.appendChild(
       MENU_BAR_MAP[menuBarId] ?? this.actionsContainer,
+    )
+    this.currentMenuBar = menuBarId
+  }
+
+  private markMenuItemsAsSeen(menuBarId: MenuBarId) {
+    MENU_CONTENT_STATUS_MAP[menuBarId].forEach((collectionKey) => {
+      Object.values(this[collectionKey]).forEach((state) => {
+        if (state.status === ContentStatusKey.New) {
+          state.status = ContentStatusKey.Unlocked
+        }
+      })
+    })
+  }
+
+  private hasNewItems(menuBarId: MenuBarId): boolean {
+    return MENU_CONTENT_STATUS_MAP[menuBarId].some((collectionKey) =>
+      Object.values(this[collectionKey]).some(
+        (state) => state.status === ContentStatusKey.New,
+      ),
     )
   }
 
