@@ -228,6 +228,7 @@ export class GameEngine {
     return {
       getGenerators: () => this.generators,
       getActions: () => this.actions,
+      getResources: () => this.resources,
       getGameSettings: () => this.gameSettings,
       registerUpdater: (fn: (snapshot: unknown) => void) => {
         this.gameLogicUI.push(fn as (snapshot: GameSnapshot) => void)
@@ -409,8 +410,9 @@ export class GameEngine {
           id: generatorId,
           spec,
           status: ContentStatusKey.Locked,
-          amount: generatorId === GeneratorKey.PlanetaryLumiumCollector ? 1 : 0,
-          efficiency: 0.2,
+          amount: spec.defaultAmount ?? 0,
+          efficiency:
+            generatorId === GeneratorKey.PlanetaryLumiumCollector ? 0.3 : 1.0,
         }
         const saved = savedGenerators?.[generatorId]
         this.generators[generatorId] = {

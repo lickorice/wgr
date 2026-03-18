@@ -1,7 +1,7 @@
 import type { ActionId, ActionStateLookup } from "@game/types/actions"
 import type { GeneratorStateLookup } from "@game/types/generators"
 import type { SettingsId, GameSettingStateLookup } from "@game/types/settings"
-import type { Cost } from "@game/types/resources"
+import type { Cost, ResourceStateLookup } from "@game/types/resources"
 import type { ChapterId, Message } from "@game/types/lore"
 import type { UnlockId } from "@game/types/unlocks"
 
@@ -22,6 +22,7 @@ export type GameEngineHelper = {
   // Accessors
   getGenerators: () => GeneratorStateLookup;
   getActions: () => ActionStateLookup;
+  getResources: () => ResourceStateLookup;
   getGameSettings: () => GameSettingStateLookup;
 
   // Updaters / registration

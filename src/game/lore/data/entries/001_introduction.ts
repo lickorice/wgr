@@ -277,7 +277,7 @@ export const regolithAccumulatorLore: ChapterEntry = {
       content: "[id:fa0e00f1] -- -- outputs:      1 'rock'/s",
     },
     {
-      tag: MessageTagKey.Info,
+      tag: MessageTagKey.Success,
       content: "[id:fa0e00f1] -- Booting process completed.",
       unlocks: [UnlockKey.RegolithAccumulatorEnabled],
     },
@@ -316,11 +316,11 @@ export const molecularAssemblerLore: ChapterEntry = {
       content: "[id:c0deb4be] -- -- outputs:    1 USM/s",
     },
     {
-      tag: MessageTagKey.Info,
+      tag: MessageTagKey.Success,
       content: "[id:c0deb4be] -- Booting process completed.",
       unlocks: [UnlockKey.MolecularAssemblerEnabled],
     },
   ],
   prerequisites: [ChapterKey.PostIntroduction],
-  unlockPrerequisites: [UnlockKey.RegolithAccumulatorLore],
+  unlockPrerequisites: [UnlockKey.MolecularAssemblerLore],
 }

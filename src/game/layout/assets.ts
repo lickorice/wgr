@@ -7,6 +7,24 @@ export function attachAssetsUI(
   container: HTMLElement,
   helpers: GameEngineHelper,
 ) {
+  const getConstructionCost = (genId: GeneratorId) => {
+    const generator = helpers.getGenerators()[genId]
+    return generator.spec.baseCost.map((cost) => ({
+      id: cost.id,
+      value: cost.value * generator.spec.growthFactor ** generator.amount,
+    }))
+  }
+
+  const formatCosts = (
+    costs: Array<{
+      id: string;
+      value: number;
+    }>,
+  ) =>
+    costs
+      .map((cost) => `${Number(cost.value.toFixed(2))} ${cost.id}`)
+      .join(", ")
+
   let panel = container.querySelector("#assets-panel") as HTMLElement | null
   const shouldCreate = !panel
 
@@ -64,13 +82,89 @@ export function attachAssetsUI(
           // Base cost
           const costEl = document.createElement("div")
           costEl.className = "text-muted small"
-          try {
-            const costs = genState.spec.baseCost
-              .map((c) => `${c.value} ${c.id}`)
-              .join(", ")
-            costEl.innerText = `Cost: ${costs}`
-          } catch {
-            costEl.innerText = "Cost: -"
+          costEl.innerText = `Next cost: ${formatCosts(getConstructionCost(genId))}`
+
+          const amountEl = document.createElement("div")
+          amountEl.className = "small"
+
+          const controlsEl = document.createElement("div")
+          controlsEl.className =
+            "d-flex flex-wrap gap-2 mt-2 align-items-center"
+
+          const constructButton = document.createElement("button")
+          constructButton.type = "button"
+          constructButton.className = "btn btn-sm btn-primary"
+          constructButton.innerText = "Construct 1"
+          constructButton.onclick = () => {
+            const liveGen = helpers.getGenerators()[genId]
+            const nextCost = getConstructionCost(genId)
+            if (!helpers.affordCost(nextCost)) return
+
+            nextCost.forEach((cost) => {
+              const resource = helpers.getResources()[cost.id]
+              resource.amount -= cost.value
+            })
+            liveGen.amount += 1
+          }
+
+          controlsEl.appendChild(constructButton)
+
+          let toggledEl: HTMLElement | null = null
+          let toggleMinusButton: HTMLButtonElement | null = null
+          let togglePlusButton: HTMLButtonElement | null = null
+
+          if (genState.spec.toggleable) {
+            toggleMinusButton = document.createElement("button")
+            toggleMinusButton.type = "button"
+            toggleMinusButton.className = "btn btn-sm btn-outline-secondary"
+            toggleMinusButton.innerText = "−"
+            toggleMinusButton.onclick = () => {
+              const liveGen = helpers.getGenerators()[genId]
+              liveGen.toggled = Math.max(0, liveGen.toggled ?? 0)
+              liveGen.toggled = Math.max(0, (liveGen.toggled ?? 0) - 1)
+            }
+
+            togglePlusButton = document.createElement("button")
+            togglePlusButton.type = "button"
+            togglePlusButton.className = "btn btn-sm btn-outline-secondary"
+            togglePlusButton.innerText = "+"
+            togglePlusButton.onclick = () => {
+              const liveGen = helpers.getGenerators()[genId]
+              const currentToggled = Math.max(0, liveGen.toggled ?? 0)
+              liveGen.toggled = Math.min(liveGen.amount, currentToggled + 1)
+            }
+
+            toggledEl = document.createElement("div")
+            toggledEl.className = "small"
+
+            controlsEl.appendChild(toggleMinusButton)
+            controlsEl.appendChild(togglePlusButton)
+            controlsEl.appendChild(toggledEl)
+          }
+
+          const syncAssetState = () => {
+            const liveGen = helpers.getGenerators()[genId]
+            const nextCost = getConstructionCost(genId)
+            amountEl.innerText = `Constructed: ${liveGen.amount}`
+            costEl.innerText = `Next cost: ${formatCosts(nextCost)}`
+            constructButton.disabled = !helpers.affordCost(nextCost)
+
+            if (toggledEl) {
+              const currentToggled = Math.min(
+                liveGen.amount,
+                Math.max(0, liveGen.toggled ?? 0),
+              )
+              toggledEl.innerText = `Active: ${currentToggled}/${liveGen.amount}`
+            }
+
+            if (toggleMinusButton) {
+              toggleMinusButton.disabled = (liveGen.toggled ?? 0) <= 0
+            }
+
+            if (togglePlusButton) {
+              togglePlusButton.disabled =
+                (liveGen.toggled ?? 0) >= liveGen.amount
+            }
           }
 
           // Efficiency display
@@ -82,7 +176,11 @@ export function attachAssetsUI(
 
           body.appendChild(gainEl)
           body.appendChild(costEl)
+          body.appendChild(amountEl)
+          body.appendChild(controlsEl)
           body.appendChild(effEl)
+
+          syncAssetState()
 
           card.id = `asset-${genId}`
           card.classList.toggle(
@@ -98,6 +196,7 @@ export function attachAssetsUI(
             try {
               const liveGen = helpers.getGenerators()[genId]
               effEl.innerText = `Efficiency: ${(liveGen.efficiency * 100).toFixed(1)}%`
+              syncAssetState()
             } catch {
               // ignore
             }
