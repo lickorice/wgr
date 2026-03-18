@@ -250,3 +250,77 @@ export const researchUnlock: ChapterEntry = {
   prerequisites: [ChapterKey.PostIntroduction],
   unlockPrerequisites: [UnlockKey.BootstrapperUI],
 }
+
+export const regolithAccumulatorLore: ChapterEntry = {
+  id: ChapterKey.RegolithAccumulatorLore,
+  messages: [
+    {
+      tag: MessageTagKey.Info,
+      content: "Energizing [RF-BEU243] Regolith Accumulator [id:fa0e00f1]...",
+      delay: 2,
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:fa0e00f1] -- Finalizing boot...",
+    },
+    {
+      tag: MessageTagKey.Warn,
+      content:
+        "[id:fa0e00f1] -- Recovery from LOW-POWER-MODE detected. Starting in OFF mode.",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:fa0e00f1] -- -- power rating: 0.5 EU/s",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:fa0e00f1] -- -- outputs:      1 'rock'/s",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:fa0e00f1] -- Booting process completed.",
+      unlocks: [UnlockKey.RegolithAccumulatorEnabled],
+    },
+  ],
+  prerequisites: [ChapterKey.PostIntroduction],
+  unlockPrerequisites: [UnlockKey.RegolithAccumulatorLore],
+}
+
+export const molecularAssemblerLore: ChapterEntry = {
+  id: ChapterKey.RegolithAccumulatorLore,
+  messages: [
+    {
+      tag: MessageTagKey.Info,
+      content: "Energizing [CT-BEU152] Molecular Assembler [id:c0deb4be]...",
+      delay: 2,
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:c0deb4be] -- Finalizing boot...",
+    },
+    {
+      tag: MessageTagKey.Warn,
+      content:
+        "[id:c0deb4be] -- Recovery from LOW-POWER-MODE detected. Starting in OFF mode.",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:c0deb4be] -- -- power rating: 2.0 EU/s",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:c0deb4be] -- -- consumes:   1 'rock'/s",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:c0deb4be] -- -- outputs:    1 USM/s",
+    },
+    {
+      tag: MessageTagKey.Info,
+      content: "[id:c0deb4be] -- Booting process completed.",
+      unlocks: [UnlockKey.MolecularAssemblerEnabled],
+    },
+  ],
+  prerequisites: [ChapterKey.PostIntroduction],
+  unlockPrerequisites: [UnlockKey.RegolithAccumulatorLore],
+}

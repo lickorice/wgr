@@ -79,7 +79,7 @@ export type GameSnapshot = {
 };
 
 // Current game version string. Keep in sync with package.json/version when releasing.
-const GAME_VERSION = "0.0.1"
+const GAME_VERSION = "0.0.3"
 
 export class GameEngine {
   actions: ActionStateLookup = Object.entries(ALL_ACTIONS).reduce(
@@ -107,8 +107,9 @@ export class GameEngine {
         spec: spec,
         status: ContentStatusKey.Locked,
         // Start with one solar panel always
-        amount: generatorId === GeneratorKey.PlanetaryLumiumCollector ? 1 : 0,
+        amount: spec.defaultAmount ?? 0,
         efficiency: 0.2,
+        toggled: 0, // Always start off, if toggleable.
       }
 
       return acc
@@ -316,13 +317,37 @@ export class GameEngine {
       currentlyReading: this.loreEngine.currentlyReading,
     }
 
-    // Remove HTMLElements from the snapshot before saving
-    // They cannot be serialized and would cause errors
-    const serializedData = JSON.stringify(snapshot, (key, value) => {
-      if (key === "element") return undefined
-      return value
-    })
+    // Create a sanitized snapshot that strips large/static `spec` objects
+    // and DOM `element` references. Specs are re-attached on import so
+    // they don't need to be stored in every save (keeps saves small).
+    const sanitizeState = (state: Record<string, unknown>) => {
+      const out: Record<string, unknown> = {}
+      Object.entries(state).forEach(([k, v]) => {
+        // Shallow clone but remove spec and element when present
+        const clone = { ...(v as Record<string, unknown>) }
+        if (clone && typeof clone === "object") {
+          const obj = clone as Record<string, unknown>
+          delete obj["spec"]
+          delete obj["element"]
+        }
+        out[k] = clone
+      })
+      return out
+    }
 
+    const sanitizedSnapshot = {
+      ...snapshot,
+      actions: sanitizeState(snapshot.actions),
+      generators: sanitizeState(snapshot.generators),
+      // Resources currently keep runtime values (amount/cap) but their
+      // `spec` can be reconstructed on load from current defaults.
+      resources: sanitizeState(snapshot.resources),
+      gameSettings: sanitizeState(
+        snapshot.gameSettings as unknown as Record<string, unknown>,
+      ),
+    }
+
+    const serializedData = JSON.stringify(sanitizedSnapshot)
     return btoa(serializedData)
   }
 
@@ -338,13 +363,24 @@ export class GameEngine {
       // Ensure existing default resources are preserved, but overwritten by saved values
       Object.keys(this.resources).forEach((k) => {
         const key = k as ResourceId
-        if (savedResources[key])
-          this.resources[key] = savedResources[key] as ResourceState
+        const defaultRes = this.resources[key]
+        const saved = savedResources[key]
+        if (saved) {
+          // Re-attach the current default spec to avoid relying on a saved spec
+          this.resources[key] = {
+            ...defaultRes,
+            ...(saved as ResourceState),
+            spec: defaultRes.spec,
+          }
+        }
       })
       // Include any extra resources present in the save that the defaults don't know about
       Object.entries(savedResources).forEach(([k, v]) => {
         const key = k as ResourceId
-        if (!this.resources[key]) this.resources[key] = v as ResourceState
+        if (!this.resources[key]) {
+          // If the saved resource provides a spec keep it, otherwise leave spec undefined
+          this.resources[key] = v as ResourceState
+        }
       })
 
       // Merge settings: ensure every setting in ALL_SETTINGS exists, re-attach spec
@@ -412,60 +448,61 @@ export class GameEngine {
           tag: MessageTagKey.Meta,
         })
 
-        // Generators added/removed
-        const savedGenKeys = Object.keys(data.generators)
-        const curGenKeys = Object.keys(ALL_GENERATORS)
-        const addedGens = curGenKeys.filter((k) => !savedGenKeys.includes(k))
-        const removedGens = savedGenKeys.filter((k) => !curGenKeys.includes(k))
-        if (addedGens.length)
-          msgs.push({
-            content: `New generator types: ${addedGens.join(", ")}`,
-            tag: MessageTagKey.Meta,
-          })
-        if (removedGens.length)
-          msgs.push({
-            content: `Generator types removed in this build: ${removedGens.join(", ")}`,
-            tag: MessageTagKey.Meta,
-          })
+        // // Generators added/removed
+        // const savedGenKeys = Object.keys(data.generators)
+        // const curGenKeys = Object.keys(ALL_GENERATORS)
+        // const addedGens = curGenKeys.filter((k) => !savedGenKeys.includes(k))
+        // const removedGens = savedGenKeys.filter((k) => !curGenKeys.includes(k))
+        // if (addedGens.length)
+        //   msgs.push({
+        //     content: `New generator types: ${addedGens.join(", ")}`,
+        //     tag: MessageTagKey.Meta,
+        //   })
+        // if (removedGens.length)
+        //   msgs.push({
+        //     content: `Generator types removed in this build: ${removedGens.join(", ")}`,
+        //     tag: MessageTagKey.Meta,
+        //   })
 
-        // Settings added/removed
-        const savedSetKeys = Object.keys(data.gameSettings)
-        const curSetKeys = Object.keys(ALL_SETTINGS)
-        const addedSets = curSetKeys.filter((k) => !savedSetKeys.includes(k))
-        const removedSets = savedSetKeys.filter((k) => !curSetKeys.includes(k))
-        if (addedSets.length)
-          msgs.push({
-            content: `New settings: ${addedSets.join(", ")}`,
-            tag: MessageTagKey.Meta,
-          })
-        if (removedSets.length)
-          msgs.push({
-            content: `Settings removed in this build: ${removedSets.join(", ")}`,
-            tag: MessageTagKey.Meta,
-          })
+        // // Settings added/removed
+        // const savedSetKeys = Object.keys(data.gameSettings)
+        // const curSetKeys = Object.keys(ALL_SETTINGS)
+        // const addedSets = curSetKeys.filter((k) => !savedSetKeys.includes(k))
+        // const removedSets = savedSetKeys.filter((k) => !curSetKeys.includes(k))
+        // if (addedSets.length)
+        //   msgs.push({
+        //     content: `New settings: ${addedSets.join(", ")}`,
+        //     tag: MessageTagKey.Meta,
+        //   })
+        // if (removedSets.length)
+        //   msgs.push({
+        //     content: `Settings removed in this build: ${removedSets.join(", ")}`,
+        //     tag: MessageTagKey.Meta,
+        //   })
 
-        // Resources added/removed (compare against merged current resources)
-        const savedResKeys = Object.keys(data.resources)
-        const curResKeys = Object.keys(this.resources)
-        const addedRes = curResKeys.filter((k) => !savedResKeys.includes(k))
-        const removedRes = savedResKeys.filter((k) => !curResKeys.includes(k))
-        if (addedRes.length)
-          msgs.push({
-            content: `New resources: ${addedRes.join(", ")}`,
-            tag: MessageTagKey.Meta,
-          })
-        if (removedRes.length)
-          msgs.push({
-            content: `Resources removed in this build: ${removedRes.join(", ")}`,
-            tag: MessageTagKey.Meta,
-          })
+        // // Resources added/removed (compare against merged current resources)
+        // const savedResKeys = Object.keys(data.resources)
+        // const curResKeys = Object.keys(this.resources)
+        // const addedRes = curResKeys.filter((k) => !savedResKeys.includes(k))
+        // const removedRes = savedResKeys.filter((k) => !curResKeys.includes(k))
+        // if (addedRes.length)
+        //   msgs.push({
+        //     content: `New resources: ${addedRes.join(", ")}`,
+        //     tag: MessageTagKey.Meta,
+        //   })
+        // if (removedRes.length)
+        //   msgs.push({
+        //     content: `Resources removed in this build: ${removedRes.join(", ")}`,
+        //     tag: MessageTagKey.Meta,
+        //   })
 
-        this.loreEngine.play(msgs)
+        // this.loreEngine.play(msgs)
       }
 
       // 3. Restore Actions (Merge spec back in)
       Object.entries(data.actions).forEach(([id, state]) => {
         const actionId = Number(id) as ActionId
+        console.log(state)
         this.actions[actionId] = {
           ...state,
           spec: ALL_ACTIONS[actionId], // Re-attach the static spec
@@ -518,11 +555,31 @@ export class GameEngine {
 
       const { spec, amount, efficiency } = generatorState
 
+      // First, if toggleable and toggled off, don't do anything
+      if (spec.toggleable && !generatorState.toggled) return
+      // Then, count how many are "active"
+      const activeCount = spec.toggleable
+        ? Math.min(generatorState.toggled ?? 0, amount)
+        : amount
+
+      // If not afforded, turn everything off, if toggleable.
+      // This is intended -- automation may be an investment down the line, or simply player skill issue
+      if (spec.baseConsumePerSec) {
+        if (!this.affordCost(spec.baseConsumePerSec)) {
+          generatorState.toggled = 0
+          return
+        }
+        // Deduct the cost:
+        this.deductCost(spec.baseConsumePerSec)
+      }
+
+      // Then, finally, add the resources
       Object.entries(spec.baseGainPerSec).map(([_, income]) => {
         const resId = income.id
         this.resources[resId].amount = Math.min(
           this.resources[resId].cap,
-          this.resources[resId].amount + amount * efficiency * income.value,
+          this.resources[resId].amount +
+            activeCount * efficiency * income.value,
         )
       })
     })

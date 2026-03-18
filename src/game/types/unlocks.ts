@@ -18,6 +18,8 @@ export const UnlockKey = {
 
   AssetLore: 8000,
   ResearchLore: 8001,
+  MolecularAssemblerLore: 8100,
+  RegolithAccumulatorLore: 8101,
 
   Chapter1Lore: 9000,
   LoreWhoAmI: 10000,

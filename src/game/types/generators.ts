@@ -4,6 +4,8 @@ import { type UnlockId } from "./unlocks"
 
 export const GeneratorKey = {
   PlanetaryLumiumCollector: "PlanetaryLumiumCollector",
+  RegolithAccumulator: "RegolithAccumulator",
+  MolecularAssembler: "MolecularAssembler",
 } as const
 
 export type GeneratorId = (typeof GeneratorKey)[keyof typeof GeneratorKey];
@@ -13,11 +15,14 @@ export type GeneratorSpec = {
   longName: string;
   flavorText: string;
   baseGainPerSec: Cost[];
+  baseConsumePerSec?: Cost[];
   baseCost: Cost[];
   growthFactor: number;
   weight: number;
+  toggleable: boolean;
   prerequisites?: UnlockId[];
   metaText?: string;
+  defaultAmount?: number;
 };
 
 export type GeneratorState = {
@@ -26,6 +31,7 @@ export type GeneratorState = {
   status: ContentStatus;
   amount: number;
   efficiency: number;
+  toggled?: number;
 };
 
 export type GeneratorStateLookup = Record<GeneratorId, GeneratorState>;

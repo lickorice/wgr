@@ -12,6 +12,8 @@ export const ActionKey = {
   EnableResearch: 4,
   EnableAdvancedInternalMetrics: 5,
   //   EnableLandedBodyMetrics: 6,
+  EnableRegolithAccumulator: 7,
+  EnableMolecularAssembler: 8,
 
   // Solar panel upgrades
   SanitizeSolarPanels: 100,

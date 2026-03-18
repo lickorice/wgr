@@ -5,6 +5,8 @@ export const ChapterKey = {
   PostIntroduction: 1,
   AssetLore: 2,
   BootstrapperLore: 3,
+  MolecularAssemblerLore: 4,
+  RegolithAccumulatorLore: 5,
 
   LoreWhoAmI: 800,
 

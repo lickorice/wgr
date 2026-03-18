@@ -8,6 +8,8 @@ import {
   postIntroduction,
   postAssetUnlock,
   researchUnlock,
+  regolithAccumulatorLore,
+  molecularAssemblerLore,
 } from "./entries/001_introduction"
 import {
   autosaveLoad,
@@ -22,6 +24,8 @@ export const ALL_CHAPTERS: Record<ChapterId, ChapterEntry> = {
   [ChapterKey.PostIntroduction]: postIntroduction,
   [ChapterKey.AssetLore]: postAssetUnlock,
   [ChapterKey.BootstrapperLore]: researchUnlock,
+  [ChapterKey.RegolithAccumulatorLore]: regolithAccumulatorLore,
+  [ChapterKey.MolecularAssemblerLore]: molecularAssemblerLore,
 
   // World-building, lore entries
   [ChapterKey.LoreWhoAmI]: loreWhoAmI,

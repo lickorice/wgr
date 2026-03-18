@@ -63,6 +63,36 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
     prerequisites: [UnlockKey.HumanityValidated],
     unlocks: [UnlockKey.AdvancedMetricsUI],
   },
+  [ActionKey.EnableRegolithAccumulator]: {
+    id: ActionKey.EnableRegolithAccumulator,
+    displayTitle: "Enable Regolith Accumulator",
+    flavorText:
+      "Seems like you can enable that machine to collect some rocks for us. Currently, its battery drained and we need to give it a little boost. Note that this will start consuming some of our energy. We can only do so much with our LC units.",
+    repeatable: false,
+    cost: [
+      {
+        id: ResourceKey.EnergyUnits,
+        value: 10,
+      },
+    ],
+    prerequisites: [UnlockKey.AssetLore],
+    unlocks: [UnlockKey.RegolithAccumulatorLore],
+  },
+  [ActionKey.EnableMolecularAssembler]: {
+    id: ActionKey.EnableMolecularAssembler,
+    displayTitle: "Enable Molecular Assembler",
+    flavorText:
+      "The rocks you collect need to be processed first before we can start building. Luckily, we're equipped to refine any raw material and fabricate modules. Just like the accumulator, this will need a kick-start; good thing our energy capacity is just enough to start it. This consumes a higher amount of energy when operational.",
+    repeatable: false,
+    cost: [
+      {
+        id: ResourceKey.EnergyUnits,
+        value: 20,
+      },
+    ],
+    prerequisites: [UnlockKey.AssetLore],
+    unlocks: [UnlockKey.MolecularAssemblerLore],
+  },
 
   // Solar panel upgrades
   [ActionKey.SanitizeSolarPanels]: {

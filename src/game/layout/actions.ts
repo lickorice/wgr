@@ -40,7 +40,10 @@ export function attachActionsUI(
 
     let unlockedCount = 0
     Object.entries(actions).forEach(([actionId, actionState]) => {
-      if (actionState.status !== ContentStatusKey.Locked) {
+      if (
+        actionState.status !== ContentStatusKey.Locked &&
+        actionState.status !== ContentStatusKey.Completed
+      ) {
         unlockedCount++
 
         if (!actionState.element) {
