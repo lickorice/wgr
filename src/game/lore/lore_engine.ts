@@ -65,9 +65,20 @@ export class LoreEngine {
     msgElement.className = `terminal-line tag-${message.tag.toLowerCase()}`
 
     // Create the prefix (Timestamp + Tag)
+    // Split the timestamp into its own element so it can be hidden on small screens
     const prefix = document.createElement("span")
     prefix.className = "terminal-prefix"
-    prefix.innerText = `${this.getTimestamp()} ${message.tag}: `
+
+    const tsSpan = document.createElement("span")
+    tsSpan.className = "terminal-timestamp"
+    tsSpan.innerText = `${this.getTimestamp()} `
+    prefix.appendChild(tsSpan)
+
+    const tagSpan = document.createElement("span")
+    tagSpan.className = "terminal-tag"
+    tagSpan.innerText = `${message.tag}: `
+    prefix.appendChild(tagSpan)
+
     msgElement.appendChild(prefix)
 
     // Create the content span

@@ -230,6 +230,12 @@ body {
     #terminal-container { padding: 12px; }
     .action-card .card-body { padding: 8px; }
     .primary-nav { padding: 6px 8px; font-size: 14px; }
+    /* Hide the timestamp portion of the terminal prefix on small screens to
+       avoid the prefix taking too much horizontal space. The tag (e.g. ERROR)
+       remains visible. */
+    .terminal-prefix .terminal-timestamp {
+        display: none;
+    }
 }
 
 /* Ensure disabled buttons show a neutral grey appearance instead of
