@@ -1,5 +1,9 @@
 import { LoreEngine } from "@game/lore/lore_engine"
-import { UnlockKey, type UnlockId } from "@game/types/unlocks"
+import {
+  UnlockKey,
+  type UnlockId,
+  checkUnlockables,
+} from "@game/types/unlocks"
 import { createProgress } from "@game/layout/util"
 import { attachSettingsUI, ALL_SETTINGS } from "@game/layout/settings"
 import { attachActionsUI } from "@game/layout/actions"
@@ -75,7 +79,7 @@ export type GameSnapshot = {
 };
 
 // Current game version string. Keep in sync with package.json/version when releasing.
-const GAME_VERSION = "0.0.0"
+const GAME_VERSION = "0.0.1"
 
 export class GameEngine {
   actions: ActionStateLookup = Object.entries(ALL_ACTIONS).reduce(
@@ -112,13 +116,13 @@ export class GameEngine {
     {} as GeneratorStateLookup,
   )
   gameSettings: GameSettingStateLookup = Object.entries(ALL_SETTINGS).reduce(
-    (acc, [id, setting]) => {
+    (acc, [id, spec]) => {
       const settingsId = id as SettingsId
 
       acc[settingsId] = {
         id: settingsId,
-        setting: setting,
-        value: setting.defaultValue,
+        spec: spec,
+        value: spec.defaultValue,
         status: ContentStatusKey.Locked,
       }
       return acc
@@ -153,7 +157,7 @@ export class GameEngine {
           longName: "Energy",
           unit: "EU",
           display: "main",
-          prerequisites: [UnlockKey.HumanityValidated],
+          prerequisites: [UnlockKey.StorageUI],
         },
         amount: 10,
         cap: 20,
@@ -165,7 +169,7 @@ export class GameEngine {
           longName: "Universal Structural Material",
           unit: "USM",
           display: "main",
-          prerequisites: [UnlockKey.StorageUI],
+          prerequisites: [UnlockKey.MolecularAssemblerEnabled],
         },
         amount: 0,
         cap: 100,
@@ -236,7 +240,7 @@ export class GameEngine {
       setGameSettingValue: (id: SettingsId, value: unknown) => {
         const s = this.gameSettings[id]
         if (!s) return
-        const t = s.setting.type
+        const t = s.spec.type
         if (t === "boolean") s.value = Boolean(value)
         else if (t === "number") s.value = Number(value)
         else s.value = String(value)
@@ -346,7 +350,7 @@ export class GameEngine {
       // Merge settings: ensure every setting in ALL_SETTINGS exists, re-attach spec
       const savedSettings = (data.gameSettings ??
         {}) as Partial<GameSettingStateLookup>
-      Object.entries(ALL_SETTINGS).forEach(([id, setting]) => {
+      Object.entries(ALL_SETTINGS).forEach(([id, spec]) => {
         const sId = id as SettingsId
         const defaultState = this.gameSettings[sId]
         const saved = savedSettings[sId]
@@ -354,7 +358,7 @@ export class GameEngine {
           this.gameSettings[sId] = {
             ...defaultState,
             ...saved,
-            setting: setting,
+            spec: spec,
           }
         } else {
           this.gameSettings[sId] = defaultState
@@ -524,42 +528,16 @@ export class GameEngine {
     })
 
     // Unlock new content if any:
-    Object.entries(this.resources).map(([_, resState]) => {
-      const resIsLocked = resState.status === ContentStatusKey.Locked
-      const resPrerequisites = resState.spec.prerequisites ?? [
-        UnlockKey.IntroductionFinished,
-      ]
-      if (resIsLocked && this.passesPrerequisites(resPrerequisites)) {
-        resState.status = ContentStatusKey.Unlocked
-      }
+    const unlockOptions = {
+      passesPrerequisites: (u: UnlockId[]) => this.passesPrerequisites(u),
+    }
+    checkUnlockables(Object.values(this.resources), {
+      ...unlockOptions,
+      skipNew: true,
     })
-    Object.entries(this.actions).map(([_, actionState]) => {
-      const actionIsLocked = actionState.status === ContentStatusKey.Locked
-      const actionPrerequisites = actionState.spec.prerequisites ?? [
-        UnlockKey.IntroductionFinished,
-      ]
-      if (actionIsLocked && this.passesPrerequisites(actionPrerequisites)) {
-        actionState.status = ContentStatusKey.New
-      }
-    })
-    Object.entries(this.gameSettings).map(([_, settingState]) => {
-      const settingIsLocked = settingState.status === ContentStatusKey.Locked
-      const settingPrerequisites = settingState.setting.prerequisites ?? [
-        UnlockKey.IntroductionFinished,
-      ]
-      if (settingIsLocked && this.passesPrerequisites(settingPrerequisites)) {
-        settingState.status = ContentStatusKey.New
-      }
-    })
-    Object.entries(this.generators).map(([_, genState]) => {
-      const genIsLocked = genState.status === ContentStatusKey.Locked
-      const settingPrerequisites = genState.spec.prerequisites ?? [
-        UnlockKey.AssetsUIUnlock,
-      ]
-      if (genIsLocked && this.passesPrerequisites(settingPrerequisites)) {
-        genState.status = ContentStatusKey.New
-      }
-    })
+    checkUnlockables(Object.values(this.actions), unlockOptions)
+    checkUnlockables(Object.values(this.gameSettings), unlockOptions)
+    checkUnlockables(Object.values(this.generators), unlockOptions)
 
     // Play lore chapters if any:
     Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {

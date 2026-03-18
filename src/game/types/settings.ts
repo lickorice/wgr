@@ -24,7 +24,7 @@ export type GameSetting = {
 
 export type GameSettingState = {
   id: SettingsId;
-  setting: GameSetting;
+  spec: GameSetting;
   value: AllowedValue;
   status: ContentStatus;
 };

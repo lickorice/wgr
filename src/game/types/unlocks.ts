@@ -1,3 +1,5 @@
+import { type ContentStatus, ContentStatusKey } from "./shared"
+
 export const UnlockKey = {
   IntroductionFinished: 0,
   ActionsUI: 1,
@@ -22,3 +24,34 @@ export const UnlockKey = {
 } as const
 
 export type UnlockId = (typeof UnlockKey)[keyof typeof UnlockKey];
+
+export interface Unlockable {
+  status: ContentStatus;
+  spec: { prerequisites?: UnlockId[] };
+}
+
+type UnlockItemOptions = {
+  passesPrerequisites: (u: UnlockId[]) => boolean;
+  skipNew?: boolean;
+};
+
+function unlockItem(unlockable: Unlockable, options: UnlockItemOptions) {
+  if (
+    unlockable.status === ContentStatusKey.Locked &&
+    options.passesPrerequisites(
+      unlockable.spec.prerequisites ?? [UnlockKey.IntroductionFinished],
+    )
+  )
+    unlockable.status = options.skipNew
+      ? ContentStatusKey.Unlocked
+      : ContentStatusKey.New
+}
+
+export function checkUnlockables(
+  unlockables: Unlockable[],
+  options: UnlockItemOptions,
+) {
+  unlockables.map((unlockable) => {
+    unlockItem(unlockable, options)
+  })
+}

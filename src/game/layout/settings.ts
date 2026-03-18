@@ -101,9 +101,9 @@ export function attachSettingsUI(
       const labelContainer = document.createElement("div")
       labelContainer.className = "flex-grow-1 small"
       const label = document.createElement("h6")
-      label.innerText = state.setting.longName
+      label.innerText = state.spec.longName
       const description = document.createElement("p")
-      description.innerText = state.setting.helperText
+      description.innerText = state.spec.helperText
       description.className = "text-muted small"
       if (gameSettings.UseSansSerifDescriptions.value) {
         description.classList.add("sans-serif")
@@ -113,7 +113,7 @@ export function attachSettingsUI(
 
       let controlContainer: HTMLElement | null = null
 
-      switch (state.setting.type) {
+      switch (state.spec.type) {
         case "boolean": {
           const { container: c, input } = createToggle(Boolean(state.value))
           input.onchange = () =>
