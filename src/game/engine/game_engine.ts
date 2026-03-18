@@ -153,9 +153,11 @@ export class GameEngine {
           longName: "Energy",
           unit: "EU",
           display: "main",
+          prerequisites: [UnlockKey.HumanityValidated],
         },
         amount: 10,
         cap: 20,
+        status: ContentStatusKey.Locked,
       },
       [ResourceKey.UniversalStructuralMaterial]: {
         spec: {
@@ -163,9 +165,23 @@ export class GameEngine {
           longName: "Universal Structural Material",
           unit: "USM",
           display: "main",
+          prerequisites: [UnlockKey.StorageUI],
         },
         amount: 0,
         cap: 100,
+        status: ContentStatusKey.Locked,
+      },
+      [ResourceKey.Regolith]: {
+        spec: {
+          id: ResourceKey.Regolith,
+          longName: "Regolith",
+          unit: "rocks",
+          display: "main",
+          prerequisites: [UnlockKey.RegolithAccumulatorEnabled],
+        },
+        amount: 0,
+        cap: 100,
+        status: ContentStatusKey.Locked,
       },
     }
     this.container = document.getElementById(containerId) || document.body
@@ -508,6 +524,15 @@ export class GameEngine {
     })
 
     // Unlock new content if any:
+    Object.entries(this.resources).map(([_, resState]) => {
+      const resIsLocked = resState.status === ContentStatusKey.Locked
+      const resPrerequisites = resState.spec.prerequisites ?? [
+        UnlockKey.IntroductionFinished,
+      ]
+      if (resIsLocked && this.passesPrerequisites(resPrerequisites)) {
+        resState.status = ContentStatusKey.Unlocked
+      }
+    })
     Object.entries(this.actions).map(([_, actionState]) => {
       const actionIsLocked = actionState.status === ContentStatusKey.Locked
       const actionPrerequisites = actionState.spec.prerequisites ?? [
@@ -673,6 +698,8 @@ export class GameEngine {
           const container = document.createElement("div")
           if (key === MetricsScreenKey.Storage) {
             Object.entries(this.resources).map(([_resKey, resState]) => {
+              if (resState.status === ContentStatusKey.Locked) return
+
               const resKey = _resKey as ResourceId
 
               const containerTitle = document.createElement("h5")

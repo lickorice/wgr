@@ -11,6 +11,9 @@ export const UnlockKey = {
   EnableStorage: 9,
   AssetsUIUnlock: 10,
 
+  MolecularAssemblerEnabled: 100,
+  RegolithAccumulatorEnabled: 101,
+
   AssetLore: 8000,
   ResearchLore: 8001,
 

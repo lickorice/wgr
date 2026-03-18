@@ -134,10 +134,10 @@ body {
 
 @keyframes new-item-glow {
     from {
-        box-shadow: 0 0 0 1px rgba(105,240,174,0.18), 0 0 8px rgba(105,240,174,0.18);
+        box-shadow: 0 0 0 1px rgbargba(252, 210, 22, 0.1), 0 0 8px rgbargba(252, 210, 22, 0.1);
     }
     to {
-        box-shadow: 0 0 0 1px rgba(105,240,174,0.4), 0 0 22px rgba(105,240,174,0.34);
+        box-shadow: 0 0 0 1px rgba(252, 210, 22, 0.5), 0 0 22px rgba(252, 210, 22, 0.5);
     }
 }
 

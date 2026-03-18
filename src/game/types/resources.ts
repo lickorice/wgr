@@ -1,4 +1,8 @@
+import { type ContentStatus } from "./shared"
+import { type UnlockId } from "./unlocks"
+
 export const ResourceKey = {
+  Regolith: "rocks",
   UniversalStructuralMaterial: "USM",
   EnergyUnits: "EU",
 } as const
@@ -15,12 +19,14 @@ export type ResourceSpec = {
   longName: string;
   unit: string;
   display: "main" | "others";
+  prerequisites: UnlockId[];
 };
 
 export type ResourceState = {
   spec: ResourceSpec;
   amount: number;
   cap: number;
+  status: ContentStatus;
 };
 
 export type ResourceStateLookup = Record<ResourceId, ResourceState>;
