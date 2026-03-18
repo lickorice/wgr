@@ -116,21 +116,15 @@ export class LoreEngine {
     // initial hidden state
     el.style.display = "none"
 
-    // We'll append the status element to the container's parent so it can
-    // be absolutely positioned on top of the terminal without being part
-    // of the terminal's scrollable content (so it won't scroll away).
-    const overlayContainer = this.container.parentElement || document.body
+    // Append the status element to the top-level document body and use
+    // fixed positioning. Using `body` + `position: fixed` avoids stacking
+    // context issues that can cause the pill to be rendered behind the
+    // terminal's content when the terminal or its parents create their
+    // own stacking contexts (transforms, z-index, etc.). Coordinates are
+    // computed in `repositionStatus()`.
+    const overlayContainer = document.body
 
-    // Ensure overlay container can be the positioning root
-    if (
-      overlayContainer &&
-      getComputedStyle(overlayContainer).position === "static"
-    ) {
-      overlayContainer.style.position = "relative"
-    }
-
-    // Set explicit positioning; computed coordinates are applied in repositionStatus
-    el.style.position = "absolute"
+    el.style.position = "fixed"
     el.style.zIndex = "2000"
     el.style.display = "none"
 
@@ -168,24 +162,14 @@ export class LoreEngine {
   // Compute and set the status element position so it visually sits on top-right of the terminal
   private repositionStatus() {
     if (!this.statusElement) return
-    const overlayContainer = this.container.parentElement || document.body
 
-    // Ensure overlay container is positioned (we set it earlier but double-check)
-    if (
-      overlayContainer &&
-      getComputedStyle(overlayContainer).position === "static"
-    ) {
-      overlayContainer.style.position = "relative"
-    }
-
-    // Use offsetTop/Left which are relative to the offsetParent (the overlay container)
-    const top = this.container.offsetTop + 12
-    // Compute distance from the right edge of the overlay container to the terminal's right edge
+    // Compute the terminal's position in the viewport and place the fixed
+    // status pill so it visually sits on the top-right of the terminal.
+    const rect = this.container.getBoundingClientRect()
+    const top = rect.top + 12
     const right = Math.max(
       12,
-      overlayContainer.clientWidth -
-        (this.container.offsetLeft + this.container.clientWidth) +
-        12,
+      window.innerWidth - (rect.left + rect.width) + 12,
     )
 
     this.statusElement.style.top = `${top}px`

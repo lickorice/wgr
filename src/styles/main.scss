@@ -57,16 +57,19 @@ body {
 
 /* Chapter playing status, positioned on the right of terminal */
 .chapter-status {
-    position: absolute;
+    /* Will be positioned via inline styles from the engine (fixed) */
+    position: fixed;
     top: 12px;
     right: 12px;
-    background: rgba(255,255,255,0.02);
+    /* Slightly darker, semi-opaque background so the pill visually covers
+       log text beneath it. Adjust opacity if you prefer more/less overlay. */
+    background: rgba(0,0,0,0.6);
     padding: 6px 10px;
     border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.03);
-    z-index: 20;
+    border: 1px solid rgba(255,255,255,0.04);
+    z-index: 2000; /* match the inline z-index set by the engine */
     font-size: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.6);
 }
 
 .chapter-status .status-done {
