@@ -45,3 +45,5 @@ export type ActionState = {
   cap?: number;
   element?: HTMLElement;
 };
+
+export type ActionStateLookup = Record<ActionId, ActionState>;

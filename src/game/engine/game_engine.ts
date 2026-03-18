@@ -15,20 +15,22 @@ import {
   GeneratorKey,
   type GeneratorId,
   type GeneratorState,
+  type GeneratorStateLookup,
 } from "@game/types/generators"
 import {
   ResourceKey,
   type ResourceId,
   type ResourceState,
+  type ResourceStateLookup,
   type Cost,
 } from "@game/types/resources"
-import { type ActionId, type ActionState } from "@game/types/actions"
+import { type ActionId, type ActionStateLookup } from "@game/types/actions"
 import { ALL_ACTIONS } from "@game/engine/data/actions"
 import { ALL_GENERATORS } from "@game/engine/data/generators"
 import {
   SettingsKey,
   type SettingsId,
-  type GameSettingState,
+  type GameSettingStateLookup,
 } from "@game/types/settings"
 import type { GameEngineHelper } from "@game/types/shared"
 
@@ -49,11 +51,11 @@ type MetricsScreenId = (typeof MetricsScreenKey)[keyof typeof MetricsScreenKey];
 
 // TODO: This is smelling like type bloat. Refactor soon.
 export type GameSnapshot = {
-  actions: Record<ActionId, ActionState>;
+  actions: ActionStateLookup;
   unlocks: UnlockId[];
-  resources: Record<ResourceId, ResourceState>;
-  generators: Record<GeneratorId, GeneratorState>;
-  gameSettings: Record<SettingsId, GameSettingState>;
+  resources: ResourceStateLookup;
+  generators: GeneratorStateLookup;
+  gameSettings: GameSettingStateLookup;
   gameVersion?: string;
   alreadyReadChapters?: ChapterId[];
   currentlyReading?: ChapterId | null;
@@ -67,7 +69,7 @@ export type GameSnapshot = {
 const GAME_VERSION = "0.0.0"
 
 export class GameEngine {
-  actions: Record<ActionId, ActionState> = Object.entries(ALL_ACTIONS).reduce(
+  actions: ActionStateLookup = Object.entries(ALL_ACTIONS).reduce(
     (acc, [id, spec]) => {
       const actionId = Number(id) as ActionId // Cast because Object.entries treats keys as strings
 
@@ -79,13 +81,11 @@ export class GameEngine {
 
       return acc
     },
-    {} as Record<ActionId, ActionState>,
+    {} as ActionStateLookup,
   )
   unlocks: Set<UnlockId> = new Set()
-  resources: Record<ResourceId, ResourceState>
-  generators: Record<GeneratorId, GeneratorState> = Object.entries(
-    ALL_GENERATORS,
-  ).reduce(
+  resources: ResourceStateLookup
+  generators: GeneratorStateLookup = Object.entries(ALL_GENERATORS).reduce(
     (acc, [id, spec]) => {
       const generatorId = id as GeneratorId
 
@@ -100,11 +100,9 @@ export class GameEngine {
 
       return acc
     },
-    {} as Record<GeneratorId, GeneratorState>,
+    {} as GeneratorStateLookup,
   )
-  gameSettings: Record<SettingsId, GameSettingState> = Object.entries(
-    ALL_SETTINGS,
-  ).reduce(
+  gameSettings: GameSettingStateLookup = Object.entries(ALL_SETTINGS).reduce(
     (acc, [id, setting]) => {
       const settingsId = id as SettingsId
 
@@ -116,7 +114,7 @@ export class GameEngine {
       }
       return acc
     },
-    {} as Record<SettingsId, GameSettingState>,
+    {} as GameSettingStateLookup,
   )
 
   private container: HTMLElement
@@ -306,9 +304,8 @@ export class GameEngine {
 
       // 2. Restore / migrate Resources, Settings, Generators & Unlocks
       // Merge saved resources into current defaults (constructor set defaults)
-      const savedResources = (data.resources ?? {}) as Partial<
-        Record<ResourceId, ResourceState>
-      >
+      const savedResources = (data.resources ??
+        {}) as Partial<ResourceStateLookup>
       // Ensure existing default resources are preserved, but overwritten by saved values
       Object.keys(this.resources).forEach((k) => {
         const key = k as ResourceId
@@ -322,9 +319,8 @@ export class GameEngine {
       })
 
       // Merge settings: ensure every setting in ALL_SETTINGS exists, re-attach spec
-      const savedSettings = (data.gameSettings ?? {}) as Partial<
-        Record<SettingsId, GameSettingState>
-      >
+      const savedSettings = (data.gameSettings ??
+        {}) as Partial<GameSettingStateLookup>
       Object.entries(ALL_SETTINGS).forEach(([id, setting]) => {
         const sId = id as SettingsId
         const defaultState = this.gameSettings[sId]
@@ -388,10 +384,7 @@ export class GameEngine {
         })
 
         // Generators added/removed
-        const savedGenKeys = Object.keys(
-          (data as unknown as { generators?: Record<string, unknown> })
-            .generators ?? {},
-        )
+        const savedGenKeys = Object.keys(data.generators)
         const curGenKeys = Object.keys(ALL_GENERATORS)
         const addedGens = curGenKeys.filter((k) => !savedGenKeys.includes(k))
         const removedGens = savedGenKeys.filter((k) => !curGenKeys.includes(k))
@@ -407,10 +400,7 @@ export class GameEngine {
           })
 
         // Settings added/removed
-        const savedSetKeys = Object.keys(
-          (data as unknown as { gameSettings?: Record<string, unknown> })
-            .gameSettings ?? {},
-        )
+        const savedSetKeys = Object.keys(data.gameSettings)
         const curSetKeys = Object.keys(ALL_SETTINGS)
         const addedSets = curSetKeys.filter((k) => !savedSetKeys.includes(k))
         const removedSets = savedSetKeys.filter((k) => !curSetKeys.includes(k))
@@ -426,10 +416,7 @@ export class GameEngine {
           })
 
         // Resources added/removed (compare against merged current resources)
-        const savedResKeys = Object.keys(
-          (data as unknown as { resources?: Record<string, unknown> })
-            .resources ?? {},
-        )
+        const savedResKeys = Object.keys(data.resources)
         const curResKeys = Object.keys(this.resources)
         const addedRes = curResKeys.filter((k) => !savedResKeys.includes(k))
         const removedRes = savedResKeys.filter((k) => !curResKeys.includes(k))

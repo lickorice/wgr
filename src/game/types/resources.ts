@@ -22,3 +22,5 @@ export type ResourceState = {
   amount: number;
   cap: number;
 };
+
+export type ResourceStateLookup = Record<ResourceId, ResourceState>;

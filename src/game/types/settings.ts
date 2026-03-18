@@ -28,3 +28,5 @@ export type GameSettingState = {
   value: AllowedValue;
   status: ContentStatus;
 };
+
+export type GameSettingStateLookup = Record<SettingsId, GameSettingState>;

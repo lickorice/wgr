@@ -7,7 +7,7 @@ import {
   MessageTagKey,
 } from "@game/types/lore"
 import { ALL_CHAPTERS } from "@game/lore/data/chapters"
-import { type SettingsId, type GameSettingState } from "@game/types/settings"
+import { type GameSettingStateLookup } from "@game/types/settings"
 import type { GameEngineHelper } from "@game/types/shared"
 
 export class LoreEngine {
@@ -19,7 +19,7 @@ export class LoreEngine {
   private defaultMessageDelay: number = 500 // 0.5s between messages
 
   private unlock: (toUnlock: UnlockId) => void
-  private getGameSettings: () => Record<SettingsId, GameSettingState>
+  private getGameSettings: () => GameSettingStateLookup
   private queue: (ChapterId | Message[])[] = []
   private isProcessing: boolean = false
   private statusElement: HTMLElement | null = null

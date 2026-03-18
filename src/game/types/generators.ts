@@ -27,3 +27,5 @@ export type GeneratorState = {
   amount: number;
   efficiency: number;
 };
+
+export type GeneratorStateLookup = Record<GeneratorId, GeneratorState>;

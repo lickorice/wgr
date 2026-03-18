@@ -1,6 +1,6 @@
-import type { ActionId, ActionState } from "@game/types/actions"
-import type { GeneratorId, GeneratorState } from "@game/types/generators"
-import type { SettingsId, GameSettingState } from "@game/types/settings"
+import type { ActionId, ActionStateLookup } from "@game/types/actions"
+import type { GeneratorStateLookup } from "@game/types/generators"
+import type { SettingsId, GameSettingStateLookup } from "@game/types/settings"
 import type { Cost } from "@game/types/resources"
 import type { ChapterId, Message } from "@game/types/lore"
 import type { UnlockId } from "@game/types/unlocks"
@@ -19,9 +19,9 @@ export type ContentStatus =
 // that previously existed in various layout files.
 export type GameEngineHelper = {
   // Accessors
-  getGenerators: () => Record<GeneratorId, GeneratorState>;
-  getActions: () => Record<ActionId, ActionState>;
-  getGameSettings: () => Record<SettingsId, GameSettingState>;
+  getGenerators: () => GeneratorStateLookup;
+  getActions: () => ActionStateLookup;
+  getGameSettings: () => GameSettingStateLookup;
 
   // Updaters / registration
   registerUpdater: (fn: (snapshot: unknown) => void) => void;
