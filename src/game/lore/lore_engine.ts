@@ -8,11 +8,7 @@ import {
 } from "@game/types/lore"
 import { ALL_CHAPTERS } from "@game/lore/data/chapters"
 import { type SettingsId, type GameSettingState } from "@game/types/settings"
-
-type LoreEngineHelpers = {
-  getGameSettings: () => Record<SettingsId, GameSettingState>;
-  unlock: (toUnlock: UnlockId) => void;
-};
+import type { GameEngineHelper } from "@game/types/shared"
 
 export class LoreEngine {
   chapters: Record<ChapterId, ChapterEntry>
@@ -30,7 +26,7 @@ export class LoreEngine {
   private statusListenersAttached: boolean = false
   private repositionStatusBound: () => void
 
-  constructor(containerId: string, helpers: LoreEngineHelpers) {
+  constructor(containerId: string, helpers: GameEngineHelper) {
     this.chapters = ALL_CHAPTERS
     this.alreadyRead = []
     this.container = document.getElementById(containerId) || document.body

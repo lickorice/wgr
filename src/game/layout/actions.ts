@@ -1,24 +1,17 @@
 import { createCard, createAffordableButton } from "@game/layout/util"
-import type { ActionId, ActionState } from "@game/types/actions"
+import type { ActionId } from "@game/types/actions"
 import { ContentStatusKey } from "@game/types/shared"
-import type { SettingsId, GameSettingState } from "@game/types/settings"
-import type { GameSnapshot } from "@game/engine/game_engine"
-import type { Cost } from "@game/types/resources"
-
-type Helpers = {
-  getActions: () => Record<ActionId, ActionState>;
-  getGameSettings: () => Record<SettingsId, GameSettingState>;
-  affordCost: (cost: Cost[]) => boolean;
-  performAction: (id: ActionId) => void;
-  registerUpdater: (fn: (snapshot: GameSnapshot) => void) => void;
-};
+import type { GameEngineHelper } from "@game/types/shared"
 
 /**
  * Attach the actions panel to the provided container.
  * This function is idempotent — it will only build the UI once per container
  * and will only rebuild the action list when the unlocked/changed snapshot differs.
  */
-export function attachActionsUI(container: HTMLElement, helpers: Helpers) {
+export function attachActionsUI(
+  container: HTMLElement,
+  helpers: GameEngineHelper,
+) {
   let panel = container.querySelector("#actions-panel") as HTMLElement | null
   const shouldCreate = !panel
 
@@ -75,9 +68,7 @@ export function attachActionsUI(container: HTMLElement, helpers: Helpers) {
           buyButton.innerText = `Execute (${costText})`
 
           // Register an updater so the button state refreshes during ticks
-          helpers.registerUpdater((_snapshot: GameSnapshot) =>
-            updateAffordability(),
-          )
+          helpers.registerUpdater(() => updateAffordability())
 
           const controls = document.createElement("div")
           controls.className =

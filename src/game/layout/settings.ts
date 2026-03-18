@@ -4,14 +4,14 @@ import {
   createNumberInput,
   createToggle,
 } from "@game/layout/util"
-import { type Message, ChapterKey, type ChapterId } from "@game/types/lore"
+import { ChapterKey } from "@game/types/lore"
 import {
   SettingsKey,
   type SettingsId,
   type GameSetting,
-  type GameSettingState,
 } from "@game/types/settings"
 import { ContentStatusKey } from "@game/types/shared"
+import type { GameEngineHelper } from "@game/types/shared"
 
 export const ALL_SETTINGS: Record<SettingsId, GameSetting> = {
   [SettingsKey.PlayMetaMessages]: {
@@ -48,20 +48,17 @@ export const ALL_SETTINGS: Record<SettingsId, GameSetting> = {
   },
 }
 
-type Helpers = {
-  exportSave: () => string;
-  importSave: (s: string) => void;
-  doAutosave: () => void;
-  play: (id: ChapterId | Message[]) => void;
-  getGameSettings: () => Record<SettingsId, GameSettingState>;
-  setGameSettingValue: (id: SettingsId, value: unknown) => void;
-};
+// The unified helper type is used here so callers can pass a single
+// GameEngine-provided helper object to `attachSettingsUI`.
 
 /**
  * Attach the settings panel to the provided container.
  * This function is idempotent — it will only build the UI once per container.
  */
-export function attachSettingsUI(container: HTMLElement, helpers: Helpers) {
+export function attachSettingsUI(
+  container: HTMLElement,
+  helpers: GameEngineHelper,
+) {
   // If the panel exists, update the settings list only when needed.
   let panel = container.querySelector("#settings-panel") as HTMLElement | null
   const shouldCreate = !panel

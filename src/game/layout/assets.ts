@@ -1,16 +1,12 @@
 import { createCard } from "@game/layout/util"
 import { ContentStatusKey } from "@game/types/shared"
-import type { GeneratorId, GeneratorState } from "@game/types/generators"
-import type { SettingsId, GameSettingState } from "@game/types/settings"
-import type { GameSnapshot } from "@game/engine/game_engine"
+import type { GeneratorId } from "@game/types/generators"
+import type { GameEngineHelper } from "@game/types/shared"
 
-type Helpers = {
-  getGenerators: () => Record<GeneratorId, GeneratorState>;
-  getGameSettings: () => Record<SettingsId, GameSettingState>;
-  registerUpdater: (fn: (snapshot: GameSnapshot) => void) => void;
-};
-
-export function attachAssetsUI(container: HTMLElement, helpers: Helpers) {
+export function attachAssetsUI(
+  container: HTMLElement,
+  helpers: GameEngineHelper,
+) {
   let panel = container.querySelector("#assets-panel") as HTMLElement | null
   const shouldCreate = !panel
 

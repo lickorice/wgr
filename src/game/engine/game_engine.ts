@@ -30,6 +30,7 @@ import {
   type SettingsId,
   type GameSettingState,
 } from "@game/types/settings"
+import type { GameEngineHelper } from "@game/types/shared"
 
 const MenuBarKey = {
   Actions: "Actions",
@@ -189,13 +190,39 @@ export class GameEngine {
     this.currentMenuBar = MenuBarKey.Actions
     this.setActiveContainer(MenuBarKey.Actions)
 
-    // Sub-engine init:
-    this.loreEngine = new LoreEngine("terminal-container", {
-      unlock: (u: UnlockId) => {
-        this.unlocks.add(u)
-      },
+    // Sub-engine init: pass a full helpers object so sub-engines and UI
+    // can rely on a consistent shape. getHelpers() builds the object from
+    // this GameEngine instance.
+    this.loreEngine = new LoreEngine("terminal-container", this.getHelpers())
+  }
+
+  private getHelpers(): GameEngineHelper {
+    return {
+      getGenerators: () => this.generators,
+      getActions: () => this.actions,
       getGameSettings: () => this.gameSettings,
-    })
+      registerUpdater: (fn: (snapshot: unknown) => void) => {
+        this.gameLogicUI.push(fn as (snapshot: GameSnapshot) => void)
+      },
+      affordCost: (cost) => this.affordCost(cost),
+      performAction: (id) => this.performAction(id),
+      exportSave: () => this.exportSave(),
+      importSave: (s) => this.importSave(s),
+      doAutosave: () => this.doAutosave(),
+      play: (id) => this.loreEngine?.play(id),
+      setGameSettingValue: (id: SettingsId, value: unknown) => {
+        const s = this.gameSettings[id]
+        if (!s) return
+        const t = s.setting.type
+        if (t === "boolean") s.value = Boolean(value)
+        else if (t === "number") s.value = Number(value)
+        else s.value = String(value)
+        if (id === SettingsKey.AutosaveInterval) {
+          this.resetAutosaveTimer()
+        }
+      },
+      unlock: (u: UnlockId) => this.unlocks.add(u),
+    }
   }
 
   private doAutosave(playMessage: boolean = false) {
@@ -702,55 +729,16 @@ export class GameEngine {
     switch (this.currentMenuBar) {
       case MenuBarKey.Assets:
         if (this.passesPrerequisites([UnlockKey.AssetsUIUnlock])) {
-          attachAssetsUI(this.assetsContainer, {
-            getGenerators: () => this.generators,
-            getGameSettings: () => this.gameSettings,
-            registerUpdater: (fn: (snapshot: GameSnapshot) => void) => {
-              this.gameLogicUI.push(fn)
-            },
-          })
+          attachAssetsUI(this.assetsContainer, this.getHelpers())
         }
         break
       case MenuBarKey.Settings:
-        attachSettingsUI(this.settingsContainer, {
-          exportSave: () => this.exportSave(),
-          importSave: (s: string) => this.importSave(s),
-          doAutosave: () => this.doAutosave(),
-          play: (id) => this.loreEngine.play(id),
-          getGameSettings: () => this.gameSettings,
-          setGameSettingValue: (id: SettingsId, value: unknown) => {
-            const s = this.gameSettings[id]
-            if (!s) return
-            // Coerce the incoming value to the declared type for safety
-            const t = s.setting.type
-            if (t === "boolean") s.value = Boolean(value)
-            else if (t === "number") s.value = Number(value)
-            else s.value = String(value)
-            // If the autosave interval was changed, restart the autosave loop
-            if (id === SettingsKey.AutosaveInterval) {
-              // End current loop and start a new one with the updated value.
-              // Don't force an immediate save; just restart the timer using the
-              // new interval. The reset function enforces a minimum of 5s.
-              this.resetAutosaveTimer()
-            }
-            // NOTE: visual application of the descriptions font setting is
-            // handled in doTick() so imports and other state paths are
-            // consistently applied there.
-          },
-        })
+        attachSettingsUI(this.settingsContainer, this.getHelpers())
         break
       default:
       case MenuBarKey.Actions:
         if (this.passesPrerequisites([UnlockKey.ActionsUI])) {
-          attachActionsUI(this.actionsContainer, {
-            getActions: () => this.actions,
-            getGameSettings: () => this.gameSettings,
-            affordCost: (cost) => this.affordCost(cost),
-            performAction: (id) => this.performAction(id),
-            registerUpdater: (fn) => {
-              this.gameLogicUI.push(fn)
-            },
-          })
+          attachActionsUI(this.actionsContainer, this.getHelpers())
         }
         break
     }
