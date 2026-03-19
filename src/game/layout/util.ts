@@ -90,20 +90,27 @@ export function createAffordableButton(
 
 export function createProgress() {
   const container = document.createElement("div")
-  container.className = "progress position-relative"
+  container.className = "htop-progress"
 
   const progressBar = document.createElement("div")
-  progressBar.className = "progress-bar bg-success"
+  progressBar.className = "htop-progress-bar"
   progressBar.setAttribute("role", "progressbar")
 
-  const progressLabel = document.createElement("small")
-  progressLabel.className =
-    "justify-content-center d-flex position-absolute w-100"
+  const progressFill = document.createElement("div")
+  progressFill.className = "htop-progress-fill"
+
+  const progressLabel = document.createElement("span")
+  progressLabel.className = "htop-progress-label"
+  const progressText = document.createElement("span")
+  progressText.className = "htop-progress-text"
+
+  progressBar.appendChild(progressFill)
+  progressBar.appendChild(progressLabel)
+  progressBar.appendChild(progressText)
 
   container.appendChild(progressBar)
-  container.appendChild(progressLabel)
 
-  return { container, progressBar, progressLabel }
+  return { container, progressLabel, progressBar, progressFill, progressText }
 }
 
 // Input helpers to keep settings UI consistent

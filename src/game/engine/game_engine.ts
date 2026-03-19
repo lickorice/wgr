@@ -659,30 +659,29 @@ export class GameEngine {
       const resKey = _resKey as ResourceId
       // Create if not exists
       if (!resState.element) {
-        const containerTitle = document.createElement("h5")
-        containerTitle.innerHTML = resState.spec.longName
-
         const {
           container: progressContainer,
-          progressBar,
           progressLabel,
+          progressBar,
+          progressFill,
+          progressText,
         } = createProgress()
         progressBar.id = `metrics-progress-${resKey}`
+        progressLabel.innerHTML = `${resState.spec.longName}:`
 
         const updateProgressBar = (gameSnapshot: GameSnapshot) => {
           const _resState = gameSnapshot.resources[resKey]
+          const progressRatio =
+            _resState.cap > 0
+              ? Math.max(0, Math.min(1, _resState.amount / _resState.cap))
+              : 0
+
           progressBar.ariaValueMin = "0"
           progressBar.ariaValueMax = `${_resState.cap}`
           progressBar.ariaValueNow = `${_resState.amount}`
-          progressLabel.innerHTML = `${_resState.amount.toFixed(2)} / ${_resState.cap.toFixed(2)} ${_resState.spec.unit}`
-          progressBar.style.width = `${(100.0 * _resState.amount) / _resState.cap}%`
+          progressText.innerHTML = `${_resState.amount.toFixed(2)}/${_resState.cap.toFixed(2)} ${_resState.spec.unit}`
+          progressFill.style.width = `${progressRatio * 100}%`
         }
-
-        if (resKey !== Object.keys(this.resources)[0]) {
-          containerTitle.className = "mt-2"
-        }
-
-        container.appendChild(containerTitle)
         container.appendChild(progressContainer)
 
         this.gameLogicUI.push(updateProgressBar)

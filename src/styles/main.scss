@@ -23,7 +23,8 @@ body {
     font-size: 14px;
     padding: 24px max(24px, calc((100% - 1320px) / 2 + 12px));
     width: 100%;
-    min-height: 30vh;
+    min-height: 35vh;
+    max-height: 35vh;
     /* Always show a vertical scrollbar to avoid width-stutter when content changes. */
     overflow-y: scroll;
     line-height: 1.6;
@@ -249,17 +250,103 @@ body {
     border-color: rgba(105,240,174,0.4);
 }
 
-/* Progress tweaks: make label readable */
-.progress {
-    height: 28px;
+/* Terminal-style resource progress rows */
+.htop-progress {
+    display: grid;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
 }
-.progress-bar {
+
+.htop-progress-bar {
+    position: relative;
+    height: 1.8rem;
+    border: 1px solid rgba(105,240,174,0.2);
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+}
+
+.htop-progress-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(9, 88, 50, 0.92),
+            rgba(105,240,174,0.92),
+        );
+    box-shadow: 0 0 12px rgba(105,240,174,0.2);
     transition: width 300ms ease;
 }
-.progress small {
-    line-height: 28px;
-    font-size: 12px;
+
+.htop-progress-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: right;
+    padding: 0 1.75rem;
     color: #f1f1f1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 1;
+    text-align: center;
+}
+
+.htop-progress-text::before {
+    content: "";
+    position: absolute;
+    right: 0%;
+    top: 50%;
+    width: calc(100% - 3rem);
+    max-width: 18rem;
+    height: 1.15rem;
+    transform: translate(0%, -50%);
+    background: rgba(0,0,0,0.75);
+    z-index: -1;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.htop-progress-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    padding: 0 1.75rem;
+    color: #f1f1f1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 1;
+    text-align: center;
+}
+
+.htop-progress-label::before {
+    content: "";
+    position: absolute;
+    left: 0%;
+    top: 50%;
+    width: calc(100% - 3rem);
+    max-width: 18rem;
+    height: 1.15rem;
+    transform: translate(0%, -50%);
+    background: rgba(0,0,0,0.75);
+    z-index: -1;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.htop-progress-bar::before,
+.htop-progress-bar::after {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9cffcc;
+    z-index: 1;
 }
 
 /* Make sure terminal and panels are visually separated on small screens */
@@ -267,6 +354,10 @@ body {
     #terminal-container { padding: 12px; }
     .action-card .card-body { padding: 8px; }
     .primary-nav { padding: 6px 8px; font-size: 14px; }
+    .htop-progress {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
     /* Hide the timestamp portion of the terminal prefix on small screens to
        avoid the prefix taking too much horizontal space. The tag (e.g. ERROR)
        remains visible. */
@@ -298,7 +389,6 @@ body {
 
 /* Footer styling: subtle, sits above the page bottom and is responsive */
 #site-footer {
-    position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
@@ -318,11 +408,8 @@ body {
 }
 
 /* Avoid overlapping important UI: give bottom padding to main containers */
-main.container-fluid,
-#terminal-container,
-#primary-container,
-#metrics-container {
-    padding-bottom: 56px; /* make room for fixed footer */
+main.container-fluid {
+    padding-bottom: 40px;
 }
 
 /* Specifically ensure primary buttons lose their blue when disabled */
