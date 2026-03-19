@@ -296,6 +296,35 @@ body {
     font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Footer styling: subtle, sits above the page bottom and is responsive */
+#site-footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.6);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    color: #cfcfcf;
+    z-index: 1500;
+}
+
+#site-footer a {
+    color: #9ff7c9;
+    text-decoration: none;
+}
+
+#site-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Avoid overlapping important UI: give bottom padding to main containers */
+main.container-fluid,
+#terminal-container,
+#primary-container,
+#metrics-container {
+    padding-bottom: 56px; /* make room for fixed footer */
+}
+
 /* Specifically ensure primary buttons lose their blue when disabled */
 .btn-primary:disabled,
 .btn-primary.disabled,

@@ -3,3 +3,6 @@ npm run type-check
 
 # Run Prettier on only the staged files
 npx lint-staged
+
+# Compile build info
+npm run prebuild

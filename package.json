@@ -1,11 +1,14 @@
 {
   "name": "wgr",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.3",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/generate-build-info.js",
     "dev": "vite",
     "build": "tsc && vite build",
+    "prebuild": "node scripts/generate-build-info.js",
+    "generate-build-info": "node scripts/generate-build-info.js",
     "preview": "vite preview",
     "prepare": "husky",
     "type-check": "tsc --noEmit",

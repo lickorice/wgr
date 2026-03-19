@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // __dirname is the folder where this config file lives
+      "@src": path.resolve(__dirname, "./src/"),
       "@game": path.resolve(__dirname, "./src/game"),
     },
   },

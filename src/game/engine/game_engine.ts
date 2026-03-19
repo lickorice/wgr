@@ -36,6 +36,7 @@ import {
   type GameSettingStateLookup,
 } from "@game/types/settings"
 import type { GameEngineHelper } from "@game/types/shared"
+import { BUILD_VERSION } from "@src/build_info"
 
 const MenuBarKey = {
   Actions: "Actions",
@@ -69,9 +70,6 @@ export type GameSnapshot = {
   // For use in action effects
   play?: (entry: ChapterId | Message[]) => void;
 };
-
-// Current game version string. Keep in sync with package.json/version when releasing.
-const GAME_VERSION = "0.0.3"
 
 export class GameEngine {
   actions: ActionStateLookup = Object.entries(ALL_ACTIONS).reduce(
@@ -310,7 +308,7 @@ export class GameEngine {
       resources: this.resources,
       generators: this.generators,
       gameSettings: this.gameSettings,
-      gameVersion: GAME_VERSION,
+      gameVersion: BUILD_VERSION,
       lastSaveDate: Date.now(),
       alreadyReadChapters: this.loreEngine.alreadyRead,
       currentlyReading: this.loreEngine.currentlyReading,
@@ -357,10 +355,10 @@ export class GameEngine {
 
       // If the save's gameVersion differs from current, generate a small changelog
       const savedVersion = data.gameVersion ?? null
-      if (savedVersion !== GAME_VERSION) {
+      if (savedVersion !== BUILD_VERSION) {
         const msgs: Message[] = []
         msgs.push({
-          content: `Loaded save ${savedVersion ?? "<unknown>"} → current ${GAME_VERSION}`,
+          content: `Loaded save ${savedVersion ?? "<unknown>"} → current ${BUILD_VERSION}`,
           tag: MessageTagKey.Meta,
         })
       }
