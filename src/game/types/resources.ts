@@ -27,6 +27,7 @@ export type ResourceState = {
   amount: number;
   cap: number;
   status: ContentStatus;
+  element?: HTMLElement;
 };
 
 export type ResourceStateLookup = Record<ResourceId, ResourceState>;

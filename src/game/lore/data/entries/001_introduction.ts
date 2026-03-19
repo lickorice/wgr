@@ -287,7 +287,7 @@ export const regolithAccumulatorLore: ChapterEntry = {
 }
 
 export const molecularAssemblerLore: ChapterEntry = {
-  id: ChapterKey.RegolithAccumulatorLore,
+  id: ChapterKey.MolecularAssemblerLore,
   messages: [
     {
       tag: MessageTagKey.Info,

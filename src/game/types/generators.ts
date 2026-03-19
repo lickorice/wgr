@@ -32,6 +32,7 @@ export type GeneratorState = {
   amount: number;
   efficiency: number;
   toggled?: number;
+  element?: HTMLElement;
 };
 
 export type GeneratorStateLookup = Record<GeneratorId, GeneratorState>;

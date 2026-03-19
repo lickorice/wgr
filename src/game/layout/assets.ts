@@ -9,9 +9,12 @@ export function attachAssetsUI(
 ) {
   const getConstructionCost = (genId: GeneratorId) => {
     const generator = helpers.getGenerators()[genId]
+    const defaultAmount = generator.spec.defaultAmount ?? 0
     return generator.spec.baseCost.map((cost) => ({
       id: cost.id,
-      value: cost.value * generator.spec.growthFactor ** generator.amount,
+      value:
+        cost.value *
+        generator.spec.growthFactor ** (generator.amount - defaultAmount),
     }))
   }
 
@@ -44,8 +47,6 @@ export function attachAssetsUI(
     panelEl.appendChild(list)
   }
 
-  const elementCache: Map<GeneratorId, HTMLElement> = new Map()
-
   const buildList = () => {
     list!.innerHTML = ""
     const gens = helpers.getGenerators()
@@ -57,7 +58,7 @@ export function attachAssetsUI(
       if (genState.status !== ContentStatusKey.Locked) {
         unlockedCount++
 
-        if (!elementCache.has(genId)) {
+        if (!genState.element) {
           const { card, body } = createCard(
             genState.spec.longName,
             genState.spec.flavorText,
@@ -96,15 +97,10 @@ export function attachAssetsUI(
           constructButton.className = "btn btn-sm btn-primary"
           constructButton.innerText = "Construct 1"
           constructButton.onclick = () => {
-            const liveGen = helpers.getGenerators()[genId]
             const nextCost = getConstructionCost(genId)
             if (!helpers.affordCost(nextCost)) return
-
-            nextCost.forEach((cost) => {
-              const resource = helpers.getResources()[cost.id]
-              resource.amount -= cost.value
-            })
-            liveGen.amount += 1
+            helpers.deductCost(nextCost)
+            helpers.getGenerators()[genId].amount += 1
           }
 
           controlsEl.appendChild(constructButton)
@@ -175,6 +171,19 @@ export function attachAssetsUI(
           )}%`
 
           body.appendChild(gainEl)
+          if (genState.spec.baseConsumePerSec) {
+            const consumeEl = document.createElement("div")
+            consumeEl.className = "text-muted small"
+            try {
+              const consumes = genState.spec.baseConsumePerSec
+                .map((g) => `${g.value} ${g.id}`)
+                .join(", ")
+              consumeEl.innerText = `Consumes/sec: ${consumes}`
+            } catch {
+              consumeEl.innerText = "Consumes/sec: -"
+            }
+            body.appendChild(consumeEl)
+          }
           body.appendChild(costEl)
           body.appendChild(amountEl)
           body.appendChild(controlsEl)
@@ -188,8 +197,8 @@ export function attachAssetsUI(
             genState.status === ContentStatusKey.New,
           )
 
+          genState.element = card
           list!.appendChild(card)
-          elementCache.set(genId, card)
 
           // Register an updater so we refresh efficiency (or other live fields)
           helpers.registerUpdater(() => {
@@ -203,12 +212,11 @@ export function attachAssetsUI(
           })
         } else {
           // ensure cached element present in list
-          const existingCard = elementCache.get(genId) as HTMLElement
-          existingCard.classList.toggle(
+          genState.element.classList.toggle(
             "new-item",
             genState.status === ContentStatusKey.New,
           )
-          list!.appendChild(existingCard)
+          list!.appendChild(genState.element)
         }
       }
     })

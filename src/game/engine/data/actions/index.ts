@@ -139,7 +139,6 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
     ],
     prerequisites: [UnlockKey.AssetLore],
     effect: (gs) => {
-      console.log("HEY", gs)
       const oldEff = gs.generators.PlanetaryLumiumCollector.efficiency
       gs.generators.PlanetaryLumiumCollector.efficiency += 0.5
       const newEff = gs.generators.PlanetaryLumiumCollector.efficiency

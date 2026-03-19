@@ -18,7 +18,6 @@ import { ContentStatusKey } from "@game/types/shared"
 import {
   GeneratorKey,
   type GeneratorId,
-  type GeneratorState,
   type GeneratorStateLookup,
 } from "@game/types/generators"
 import {
@@ -54,13 +53,6 @@ const MENU_CONTENT_STATUS_MAP: Record<
   [MenuBarKey.Assets]: ["generators"],
   [MenuBarKey.Settings]: ["gameSettings"],
 }
-
-const MetricsScreenKey = {
-  Storage: "Storage",
-  Bootstrapper: "Bootstrapper",
-} as const
-
-type MetricsScreenId = (typeof MetricsScreenKey)[keyof typeof MetricsScreenKey];
 
 // TODO: This is smelling like type bloat. Refactor soon.
 export type GameSnapshot = {
@@ -108,7 +100,8 @@ export class GameEngine {
         status: ContentStatusKey.Locked,
         // Start with one solar panel always
         amount: spec.defaultAmount ?? 0,
-        efficiency: 0.2,
+        efficiency:
+          generatorId === GeneratorKey.PlanetaryLumiumCollector ? 0.2 : 1.0,
         toggled: 0, // Always start off, if toggleable.
       }
 
@@ -135,7 +128,6 @@ export class GameEngine {
   private metricsContainer: HTMLElement
   private primaryContainer: HTMLElement
   private menuBar: HTMLElement
-  private metricsItems: Set<MetricsScreenId> = new Set()
   private menuBarItems: Set<MenuBarId> = new Set()
   private currentMenuBar: MenuBarId = MenuBarKey.Actions
   private actionsContainer: HTMLElement
@@ -234,6 +226,8 @@ export class GameEngine {
         this.gameLogicUI.push(fn as (snapshot: GameSnapshot) => void)
       },
       affordCost: (cost) => this.affordCost(cost),
+      deductCost: (cost) => this.deductCost(cost),
+      addCost: (cost) => this.addCost(cost),
       performAction: (id) => this.performAction(id),
       exportSave: () => this.exportSave(),
       importSave: (s) => this.importSave(s),
@@ -287,7 +281,7 @@ export class GameEngine {
 
   public start() {
     const savedData = localStorage.getItem("gameState")
-    if (savedData) {
+    if (savedData && savedData.trim() !== "") {
       this.importSave(savedData)
       if (this.gameSettings.PlayAutosaveMessages.value)
         this.loreEngine.play(ChapterKey.AutosaveLoad)
@@ -357,6 +351,16 @@ export class GameEngine {
       const decoded = atob(gameSaveStr)
       const data = JSON.parse(decoded) as GameSnapshot
 
+      // If the save's gameVersion differs from current, generate a small changelog
+      const savedVersion = data.gameVersion ?? null
+      if (savedVersion !== GAME_VERSION) {
+        const msgs: Message[] = []
+        msgs.push({
+          content: `Loaded save ${savedVersion ?? "<unknown>"} → current ${GAME_VERSION}`,
+          tag: MessageTagKey.Meta,
+        })
+      }
+
       // 2. Restore / migrate Resources, Settings, Generators & Unlocks
       // Merge saved resources into current defaults (constructor set defaults)
       const savedResources = (data.resources ??
@@ -375,19 +379,11 @@ export class GameEngine {
           }
         }
       })
-      // Include any extra resources present in the save that the defaults don't know about
-      Object.entries(savedResources).forEach(([k, v]) => {
-        const key = k as ResourceId
-        if (!this.resources[key]) {
-          // If the saved resource provides a spec keep it, otherwise leave spec undefined
-          this.resources[key] = v as ResourceState
-        }
-      })
 
       // Merge settings: ensure every setting in ALL_SETTINGS exists, re-attach spec
       const savedSettings = (data.gameSettings ??
         {}) as Partial<GameSettingStateLookup>
-      Object.entries(ALL_SETTINGS).forEach(([id, spec]) => {
+      Object.keys(this.gameSettings).forEach((id) => {
         const sId = id as SettingsId
         const defaultState = this.gameSettings[sId]
         const saved = savedSettings[sId]
@@ -395,116 +391,36 @@ export class GameEngine {
           this.gameSettings[sId] = {
             ...defaultState,
             ...saved,
-            spec: spec,
+            spec: defaultState.spec,
           }
-        } else {
-          this.gameSettings[sId] = defaultState
         }
       })
 
       // Merge generators: ensure ALL_GENERATORS keys exist and re-attach spec
-      const savedGenerators = data.generators
-      Object.entries(ALL_GENERATORS).forEach(([id, spec]) => {
+      const savedGenerators = (data.generators ??
+        {}) as Partial<GeneratorStateLookup>
+      Object.keys(this.generators).forEach((id) => {
         const generatorId = id as GeneratorId
-        const defaultGen: GeneratorState = {
-          id: generatorId,
-          spec,
-          status: ContentStatusKey.Locked,
-          amount: spec.defaultAmount ?? 0,
-          efficiency:
-            generatorId === GeneratorKey.PlanetaryLumiumCollector ? 0.3 : 1.0,
-        }
+        const defaultGen = this.generators[generatorId]
         const saved = savedGenerators?.[generatorId]
         this.generators[generatorId] = {
           ...defaultGen,
           ...(saved ?? {}),
-          spec,
+          spec: defaultGen.spec,
         }
       })
-      // Preserve any saved generators that do not exist in ALL_GENERATORS (avoid data loss)
-      if (savedGenerators) {
-        Object.entries(savedGenerators).forEach(([id, saved]) => {
-          if (!this.generators[id as GeneratorId]) {
-            this.generators[id as GeneratorId] = {
-              ...saved,
-              spec: ALL_GENERATORS[id as GeneratorId] ?? saved.spec,
-            }
-          }
-        })
-      }
 
-      // Restore unlocks & already-read chapters
       this.unlocks = new Set(data.unlocks)
       this.loreEngine.alreadyRead = data.alreadyReadChapters ?? []
+
       if (data.currentlyReading) {
         this.loreEngine.currentlyReading = data.currentlyReading ?? null
         this.loreEngine.play(data.currentlyReading) // Doesn't matter which, since it reads off of currentlyReading
       }
 
-      // If the save's gameVersion differs from current, generate a small changelog
-      const savedVersion = data.gameVersion ?? null
-      if (savedVersion !== GAME_VERSION) {
-        const msgs: Message[] = []
-        msgs.push({
-          content: `Loaded save ${savedVersion ?? "<unknown>"} → current ${GAME_VERSION}`,
-          tag: MessageTagKey.Meta,
-        })
-
-        // // Generators added/removed
-        // const savedGenKeys = Object.keys(data.generators)
-        // const curGenKeys = Object.keys(ALL_GENERATORS)
-        // const addedGens = curGenKeys.filter((k) => !savedGenKeys.includes(k))
-        // const removedGens = savedGenKeys.filter((k) => !curGenKeys.includes(k))
-        // if (addedGens.length)
-        //   msgs.push({
-        //     content: `New generator types: ${addedGens.join(", ")}`,
-        //     tag: MessageTagKey.Meta,
-        //   })
-        // if (removedGens.length)
-        //   msgs.push({
-        //     content: `Generator types removed in this build: ${removedGens.join(", ")}`,
-        //     tag: MessageTagKey.Meta,
-        //   })
-
-        // // Settings added/removed
-        // const savedSetKeys = Object.keys(data.gameSettings)
-        // const curSetKeys = Object.keys(ALL_SETTINGS)
-        // const addedSets = curSetKeys.filter((k) => !savedSetKeys.includes(k))
-        // const removedSets = savedSetKeys.filter((k) => !curSetKeys.includes(k))
-        // if (addedSets.length)
-        //   msgs.push({
-        //     content: `New settings: ${addedSets.join(", ")}`,
-        //     tag: MessageTagKey.Meta,
-        //   })
-        // if (removedSets.length)
-        //   msgs.push({
-        //     content: `Settings removed in this build: ${removedSets.join(", ")}`,
-        //     tag: MessageTagKey.Meta,
-        //   })
-
-        // // Resources added/removed (compare against merged current resources)
-        // const savedResKeys = Object.keys(data.resources)
-        // const curResKeys = Object.keys(this.resources)
-        // const addedRes = curResKeys.filter((k) => !savedResKeys.includes(k))
-        // const removedRes = savedResKeys.filter((k) => !curResKeys.includes(k))
-        // if (addedRes.length)
-        //   msgs.push({
-        //     content: `New resources: ${addedRes.join(", ")}`,
-        //     tag: MessageTagKey.Meta,
-        //   })
-        // if (removedRes.length)
-        //   msgs.push({
-        //     content: `Resources removed in this build: ${removedRes.join(", ")}`,
-        //     tag: MessageTagKey.Meta,
-        //   })
-
-        // this.loreEngine.play(msgs)
-      }
-
       // 3. Restore Actions (Merge spec back in)
       Object.entries(data.actions).forEach(([id, state]) => {
         const actionId = Number(id) as ActionId
-        console.log(state)
         this.actions[actionId] = {
           ...state,
           spec: ALL_ACTIONS[actionId], // Re-attach the static spec
@@ -517,7 +433,9 @@ export class GameEngine {
       console.log("Save loaded successfully.")
       if (data.lastSaveDate) this.calculateOfflineProgress(data.lastSaveDate)
     } catch (e) {
-      console.error("Failed to import save:", e)
+      alert(
+        `Contact the developer through GitHub for support. Failed to import save: ${e}`,
+      )
     }
   }
 
@@ -567,16 +485,23 @@ export class GameEngine {
       // If not afforded, turn everything off, if toggleable.
       // This is intended -- automation may be an investment down the line, or simply player skill issue
       if (spec.baseConsumePerSec) {
-        if (!this.affordCost(spec.baseConsumePerSec)) {
+        const totalCost = spec.baseConsumePerSec.reduce((acc, item) => {
+          acc.push({
+            id: item.id,
+            value: item.value * activeCount,
+          })
+          return acc
+        }, [] as Cost[])
+        if (!this.affordCost(totalCost)) {
           generatorState.toggled = 0
           return
         }
         // Deduct the cost:
-        this.deductCost(spec.baseConsumePerSec)
+        this.deductCost(totalCost)
       }
 
       // Then, finally, add the resources
-      Object.entries(spec.baseGainPerSec).map(([_, income]) => {
+      spec.baseGainPerSec.map((income) => {
         const resId = income.id
         this.resources[resId].amount = Math.min(
           this.resources[resId].cap,
@@ -629,6 +554,12 @@ export class GameEngine {
   private deductCost(cost: Cost[]): void {
     cost.forEach((c) => {
       this.resources[c.id].amount -= c.value
+    })
+  }
+
+  private addCost(cost: Cost[]): void {
+    cost.forEach((c) => {
+      this.resources[c.id].amount += c.value
     })
   }
 
@@ -719,59 +650,42 @@ export class GameEngine {
   }
 
   private renderMetricsScreen() {
-    const METRIC_SCREEN_LOOKUP: Record<MetricsScreenId, UnlockId[]> = {
-      [MetricsScreenKey.Storage]: [UnlockKey.StorageUI],
-      [MetricsScreenKey.Bootstrapper]: [UnlockKey.BootstrapperUI],
-    }
+    Object.entries(this.resources).map(([_resKey, resState]) => {
+      const container = document.createElement("div")
+      if (resState.status === ContentStatusKey.Locked) return
 
-    Object.entries(METRIC_SCREEN_LOOKUP).map(([_key, prerequisites]) => {
-      const key = _key as MetricsScreenId
-      if (this.metricsItems.has(key)) return
-      if (this.passesPrerequisites(prerequisites)) {
-        this.metricsItems.add(key)
+      const resKey = _resKey as ResourceId
+      // Create if not exists
+      if (!resState.element) {
+        const containerTitle = document.createElement("h5")
+        containerTitle.innerHTML = resState.spec.longName
 
-        // For now, set to an if-else for storage and bootstrapper:
-        const getLayout = (key: MetricsScreenId) => {
-          const container = document.createElement("div")
-          if (key === MetricsScreenKey.Storage) {
-            Object.entries(this.resources).map(([_resKey, resState]) => {
-              if (resState.status === ContentStatusKey.Locked) return
+        const {
+          container: progressContainer,
+          progressBar,
+          progressLabel,
+        } = createProgress()
+        progressBar.id = `metrics-progress-${resKey}`
 
-              const resKey = _resKey as ResourceId
-
-              const containerTitle = document.createElement("h5")
-              containerTitle.innerHTML = resState.spec.longName
-
-              const {
-                container: progressContainer,
-                progressBar,
-                progressLabel,
-              } = createProgress()
-              progressBar.id = `metrics-progress-${resKey}`
-
-              const updateProgressBar = (gameSnapshot: GameSnapshot) => {
-                const _resState = gameSnapshot.resources[resKey]
-                progressBar.ariaValueMin = "0"
-                progressBar.ariaValueMax = `${_resState.cap}`
-                progressBar.ariaValueNow = `${_resState.amount}`
-                progressLabel.innerHTML = `${_resState.amount.toFixed(2)} / ${_resState.cap.toFixed(2)} ${_resState.spec.unit}`
-                progressBar.style.width = `${(100.0 * _resState.amount) / _resState.cap}%`
-              }
-
-              if (resKey !== Object.keys(this.resources)[0]) {
-                containerTitle.className = "mt-2"
-              }
-
-              container.appendChild(containerTitle)
-              container.appendChild(progressContainer)
-
-              this.gameLogicUI.push(updateProgressBar)
-            })
-          } else {
-          }
-          return container
+        const updateProgressBar = (gameSnapshot: GameSnapshot) => {
+          const _resState = gameSnapshot.resources[resKey]
+          progressBar.ariaValueMin = "0"
+          progressBar.ariaValueMax = `${_resState.cap}`
+          progressBar.ariaValueNow = `${_resState.amount}`
+          progressLabel.innerHTML = `${_resState.amount.toFixed(2)} / ${_resState.cap.toFixed(2)} ${_resState.spec.unit}`
+          progressBar.style.width = `${(100.0 * _resState.amount) / _resState.cap}%`
         }
-        this.metricsContainer.appendChild(getLayout(key))
+
+        if (resKey !== Object.keys(this.resources)[0]) {
+          containerTitle.className = "mt-2"
+        }
+
+        container.appendChild(containerTitle)
+        container.appendChild(progressContainer)
+
+        this.gameLogicUI.push(updateProgressBar)
+        resState.element = container
+        this.metricsContainer.appendChild(container)
       }
     })
   }

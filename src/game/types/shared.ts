@@ -30,6 +30,8 @@ export type GameEngineHelper = {
 
   // Game actions
   affordCost: (cost: Cost[]) => boolean;
+  deductCost: (cost: Cost[]) => void;
+  addCost: (cost: Cost[]) => void;
   performAction: (id: ActionId) => void;
 
   // Save / load / autosave
