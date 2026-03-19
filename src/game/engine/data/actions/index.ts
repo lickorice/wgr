@@ -72,7 +72,7 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
     cost: [
       {
         id: ResourceKey.EnergyUnits,
-        value: 10,
+        value: 5,
       },
     ],
     prerequisites: [UnlockKey.AssetLore],
@@ -82,12 +82,12 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
     id: ActionKey.EnableMolecularAssembler,
     displayTitle: "Enable Molecular Assembler",
     flavorText:
-      "The rocks you collect need to be processed first before we can start building. Luckily, we're equipped to refine any raw material and fabricate modules. Just like the accumulator, this will need a kick-start; good thing our energy capacity is just enough to start it. This consumes a higher amount of energy when operational.",
+      "The rocks you collect need to be processed first before we can start building. Luckily, we're equipped to refine any raw material and fabricate modules. Just like the accumulator, this will need a kick-start. This consumes a higher amount of energy when operational.",
     repeatable: false,
     cost: [
       {
         id: ResourceKey.EnergyUnits,
-        value: 20,
+        value: 10,
       },
     ],
     prerequisites: [UnlockKey.AssetLore],
