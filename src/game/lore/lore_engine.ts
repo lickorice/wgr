@@ -70,7 +70,7 @@ export class LoreEngine {
     prefix.className = "terminal-prefix"
 
     const tsSpan = document.createElement("span")
-    tsSpan.className = "terminal-timestamp"
+    tsSpan.className = "terminal-timestamp d-none d-lg-inline"
     tsSpan.innerText = `${this.getTimestamp()} `
     prefix.appendChild(tsSpan)
 

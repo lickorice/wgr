@@ -100,7 +100,7 @@ export function createProgress() {
   progressFill.className = "htop-progress-fill"
 
   const progressLabel = document.createElement("span")
-  progressLabel.className = "htop-progress-label"
+  progressLabel.className = "d-none d-lg-flex htop-progress-label"
   const progressText = document.createElement("span")
   progressText.className = "htop-progress-text"
 
