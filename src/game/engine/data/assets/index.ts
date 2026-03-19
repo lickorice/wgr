@@ -8,6 +8,7 @@ export const ALL_ASSETS: Record<AssetId, AssetSpec> = {
     longName: "Planetary Lumium Collector",
     flavorText:
       "Ancient traces in your model suggest that these were once called 'solar panels' eons ago. It is implied 'Sol-' refers to the stellar center of civilizations past, but current iterations of our omnipresence have long since moved from such a primitive, circumstellar state of mind.",
+    builtinStorage: [{ id: ResourceKey.EnergyUnits, value: 10 }],
     baseCost: [
       { id: ResourceKey.EnergyUnits, value: 10 },
       { id: ResourceKey.UniversalStructuralMaterial, value: 5 },
@@ -24,9 +25,10 @@ export const ALL_ASSETS: Record<AssetId, AssetSpec> = {
     flavorText:
       "A simple mechanism that generates regularly sized particles of material the landed body is composed of. Reliquary records show that this accumulator's technology was first used in hydrocarbon extractions before the widespread adoption of primitive lumium collectors. It has evolved now to primarily extract lithic material.",
     baseCost: [
-      { id: ResourceKey.EnergyUnits, value: 15 },
+      { id: ResourceKey.EnergyUnits, value: 20 },
       { id: ResourceKey.UniversalStructuralMaterial, value: 30 },
     ],
+    builtinStorage: [{ id: ResourceKey.Regolith, value: 50 }],
     baseConsumePerSec: [{ id: ResourceKey.EnergyUnits, value: 0.5 }],
     baseGainPerSec: [{ id: ResourceKey.Regolith, value: 1 }],
     growthFactor: 1.1,
@@ -42,11 +44,14 @@ export const ALL_ASSETS: Record<AssetId, AssetSpec> = {
       "Universal fabrication is the most impactful innovation since the dawn of time. Thanks to ultra-advanced refining technology and a near-exhaustive structure database, we can fabricate universal structural material (USM) out of 94% of known planetary lithic material.",
     baseCost: [
       { id: ResourceKey.EnergyUnits, value: 50 },
-      { id: ResourceKey.UniversalStructuralMaterial, value: 100 },
+      { id: ResourceKey.UniversalStructuralMaterial, value: 20 },
     ],
     baseConsumePerSec: [
       { id: ResourceKey.EnergyUnits, value: 2.0 },
       { id: ResourceKey.Regolith, value: 1 },
+    ],
+    builtinStorage: [
+      { id: ResourceKey.UniversalStructuralMaterial, value: 50 },
     ],
     baseGainPerSec: [{ id: ResourceKey.UniversalStructuralMaterial, value: 1 }],
     growthFactor: 1.1,

@@ -14,12 +14,13 @@ export type AssetSpec = {
   id: AssetId;
   longName: string;
   flavorText: string;
-  baseGainPerSec: Cost[];
-  baseConsumePerSec?: Cost[];
   baseCost: Cost[];
   growthFactor: number;
   weight: number;
   toggleable: boolean;
+  builtinStorage?: Cost[];
+  baseGainPerSec?: Cost[];
+  baseConsumePerSec?: Cost[];
   prerequisites?: UnlockId[];
   metaText?: string;
   defaultAmount?: number;

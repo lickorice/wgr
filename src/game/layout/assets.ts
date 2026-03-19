@@ -1,6 +1,7 @@
 import { ContentStatusKey } from "@game/types/shared"
 import type { AssetId } from "@src/game/types/assets"
 import type { GameEngineHelper } from "@game/types/shared"
+import type { Cost } from "@game/types/resources"
 
 function createCard() {
   const card = document.createElement("div")
@@ -34,14 +35,12 @@ export function attachAssetsUI(
     }))
   }
 
-  const formatCosts = (
-    costs: Array<{
-      id: string;
-      value: number;
-    }>,
-  ) =>
+  const formatCosts = (costs: Cost[]) =>
     costs
-      .map((cost) => `${Number(cost.value.toFixed(2))} ${cost.id}`)
+      .map((cost) => {
+        const unit = helpers.getResources()[cost.id].spec.unit
+        return `${Number(cost.value.toFixed(2))} ${unit}`
+      })
       .join(", ")
 
   let panel = container.querySelector("#assets-panel") as HTMLElement | null
@@ -79,14 +78,24 @@ export function attachAssetsUI(
 
           // Base gain per second
           const gainEl = document.createElement("div")
-          gainEl.className = "text-muted small"
-          try {
-            const gains = genState.spec.baseGainPerSec
-              .map((g) => `${g.value} ${g.id}`)
-              .join(", ")
-            gainEl.innerText = `Base gain/sec: ${gains}`
-          } catch {
-            gainEl.innerText = "Base gain/sec: -"
+          if (genState.spec.baseGainPerSec) {
+            gainEl.className = "text-muted small"
+            try {
+              const gains = genState.spec.baseGainPerSec
+              gainEl.innerText = `Base gain/sec: ${formatCosts(gains)}`
+            } catch {
+              gainEl.innerText = "Base gain/sec: -"
+            }
+          }
+          const storageEl = document.createElement("div")
+          if (genState.spec.builtinStorage) {
+            storageEl.className = "text-muted small"
+            try {
+              const strg = genState.spec.builtinStorage
+              storageEl.innerText = `Built-in storage: ${formatCosts(strg)}`
+            } catch {
+              storageEl.innerText = "Built-in storage: -"
+            }
           }
 
           // Base cost
@@ -104,8 +113,17 @@ export function attachAssetsUI(
           constructButton.onclick = () => {
             const nextCost = getConstructionCost(genId)
             if (!helpers.affordCost(nextCost)) return
+
+            // deduct the cost,
             helpers.deductCost(nextCost)
+            // increment amount
             helpers.getAssets()[genId].amount += 1
+            // increment cap if needed
+            if (genState.spec.builtinStorage) {
+              genState.spec.builtinStorage.map((cost) => {
+                helpers.getResources()[cost.id].cap += cost.value
+              })
+            }
           }
 
           const controlsEl = document.createElement("div")
@@ -223,9 +241,7 @@ export function attachAssetsUI(
             consumeEl.className = "tag-_err small"
             try {
               const consumes = genState.spec.baseConsumePerSec
-                .map((g) => `${g.value} ${g.id}`)
-                .join(", ")
-              consumeEl.innerText = `Consumes/sec: ${consumes}`
+              consumeEl.innerText = `Consumes/sec: ${formatCosts(consumes)}`
             } catch {
               consumeEl.innerText = "Consumes/sec: -"
             }
@@ -235,7 +251,12 @@ export function attachAssetsUI(
           const rightCol = document.createElement("div")
           // Keep controls stacked and aligned to the end (right)
           rightCol.className = "d-flex w-100 flex-column align-items-end"
-          rightCol.appendChild(gainEl)
+          if (genState.spec.builtinStorage) {
+            rightCol.appendChild(storageEl)
+          }
+          if (genState.spec.baseGainPerSec) {
+            rightCol.appendChild(gainEl)
+          }
           rightCol.appendChild(costEl)
           rightCol.appendChild(amountEl)
           rightCol.appendChild(effEl)

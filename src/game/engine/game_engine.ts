@@ -163,7 +163,7 @@ export class GameEngine {
           prerequisites: [UnlockKey.MolecularAssemblerEnabled],
         },
         amount: 0,
-        cap: 100,
+        cap: 50,
         status: ContentStatusKey.Locked,
       },
       [ResourceKey.Regolith]: {
@@ -175,7 +175,7 @@ export class GameEngine {
           prerequisites: [UnlockKey.RegolithAccumulatorEnabled],
         },
         amount: 0,
-        cap: 100,
+        cap: 50,
         status: ContentStatusKey.Locked,
       },
     }
@@ -216,6 +216,15 @@ export class GameEngine {
     // can rely on a consistent shape. getHelpers() builds the object from
     // this GameEngine instance.
     this.loreEngine = new LoreEngine("terminal-container", this.getHelpers())
+  }
+
+  private formatCosts(costs: Cost[]) {
+    return costs
+      .map((cost) => {
+        const unit = this.resources[cost.id].spec.unit
+        return `${Number(cost.value.toFixed(2))} ${unit}`
+      })
+      .join(", ")
   }
 
   private getHelpers(): GameEngineHelper {
@@ -497,6 +506,12 @@ export class GameEngine {
           return acc
         }, [] as Cost[])
         if (!this.affordCost(totalCost)) {
+          this.loreEngine.play([
+            {
+              tag: MessageTagKey.Warn,
+              content: `${spec.longName} has been fully disabled as it cannot meet required input: (${this.formatCosts(totalCost)}) / sec`,
+            },
+          ])
           assetState.toggled = 0
           return
         }
@@ -505,14 +520,16 @@ export class GameEngine {
       }
 
       // Then, finally, add the resources
-      spec.baseGainPerSec.map((income) => {
-        const resId = income.id
-        this.resources[resId].amount = Math.min(
-          this.resources[resId].cap,
-          this.resources[resId].amount +
-            activeCount * efficiency * income.value,
-        )
-      })
+      if (spec.baseGainPerSec) {
+        spec.baseGainPerSec.map((income) => {
+          const resId = income.id
+          this.resources[resId].amount = Math.min(
+            this.resources[resId].cap,
+            this.resources[resId].amount +
+              activeCount * efficiency * income.value,
+          )
+        })
+      }
     })
 
     // Unlock new content if any:
