@@ -1,7 +1,24 @@
-import { createCard } from "@game/layout/util"
 import { ContentStatusKey } from "@game/types/shared"
 import type { GeneratorId } from "@game/types/generators"
 import type { GameEngineHelper } from "@game/types/shared"
+
+function createCard() {
+  const card = document.createElement("div")
+  const cardBody = document.createElement("div")
+  const row = document.createElement("div")
+
+  // Action-specific card class for targeted styling
+  card.className = "card mb-2 action-card border-light"
+  cardBody.className = "card-body"
+  cardBody.style.width = "97%"
+  row.className = "row g-0"
+  // Use a compact heading suitable for small screens
+
+  row.appendChild(cardBody)
+  card.appendChild(row)
+
+  return { card, cardRow: row, body: cardBody }
+}
 
 export function attachAssetsUI(
   container: HTMLElement,
@@ -59,14 +76,7 @@ export function attachAssetsUI(
         unlockedCount++
 
         if (!genState.element) {
-          const { card, body } = createCard(
-            genState.spec.longName,
-            genState.spec.flavorText,
-            gameSettings.PlayMetaMessages.value
-              ? genState.spec.metaText
-              : undefined,
-            gameSettings.UseSansSerifDescriptions?.value as boolean,
-          )
+          const { card, cardRow, body } = createCard()
 
           // Base gain per second
           const gainEl = document.createElement("div")
@@ -88,13 +98,9 @@ export function attachAssetsUI(
           const amountEl = document.createElement("div")
           amountEl.className = "small"
 
-          const controlsEl = document.createElement("div")
-          controlsEl.className =
-            "d-flex flex-wrap gap-2 mt-2 align-items-center"
-
           const constructButton = document.createElement("button")
           constructButton.type = "button"
-          constructButton.className = "btn btn-sm btn-primary"
+          constructButton.className = "btn btn-sm btn-primary mt-2"
           constructButton.innerText = "Construct 1"
           constructButton.onclick = () => {
             const nextCost = getConstructionCost(genId)
@@ -103,39 +109,49 @@ export function attachAssetsUI(
             helpers.getGenerators()[genId].amount += 1
           }
 
-          controlsEl.appendChild(constructButton)
-
-          let toggledEl: HTMLElement | null = null
-          let toggleMinusButton: HTMLButtonElement | null = null
-          let togglePlusButton: HTMLButtonElement | null = null
-
+          const controlsEl = document.createElement("div")
+          controlsEl.className =
+            "col-1 flex-column d-flex justify-content-center slim-control"
+          controlsEl.style.width = "3%"
+          const toggledElLabel = document.createElement("span")
+          const togglePlusButton = document.createElement("button")
+          const toggleMinusButton = document.createElement("button")
+          const toggledElProgWrapper = document.createElement("div")
+          const toggledElProgBar = document.createElement("div")
           if (genState.spec.toggleable) {
-            toggleMinusButton = document.createElement("button")
             toggleMinusButton.type = "button"
-            toggleMinusButton.className = "btn btn-sm btn-outline-secondary"
-            toggleMinusButton.innerText = "−"
+            toggleMinusButton.className = "btn btn-sm btn-danger p-0 rounded-0"
+            toggleMinusButton.innerText = `-`
+            toggleMinusButton.style.height = "20%"
             toggleMinusButton.onclick = () => {
               const liveGen = helpers.getGenerators()[genId]
               liveGen.toggled = Math.max(0, liveGen.toggled ?? 0)
               liveGen.toggled = Math.max(0, (liveGen.toggled ?? 0) - 1)
             }
 
-            togglePlusButton = document.createElement("button")
             togglePlusButton.type = "button"
-            togglePlusButton.className = "btn btn-sm btn-outline-secondary"
-            togglePlusButton.innerText = "+"
+            togglePlusButton.className = "btn btn-sm btn-success p-0 rounded-0"
+            togglePlusButton.innerText = `+`
+            togglePlusButton.style.height = "20%"
             togglePlusButton.onclick = () => {
               const liveGen = helpers.getGenerators()[genId]
               const currentToggled = Math.max(0, liveGen.toggled ?? 0)
               liveGen.toggled = Math.min(liveGen.amount, currentToggled + 1)
             }
 
-            toggledEl = document.createElement("div")
-            toggledEl.className = "small"
+            const toggledEl = document.createElement("div")
+            toggledEl.className = "middle-section"
+            toggledElLabel.className = "rotated-text px-3"
+            toggledEl.appendChild(toggledElLabel)
+            toggledElProgWrapper.className = "progress progress-vertical"
+            toggledElProgBar.className = "progress-bar toggle-progress"
+            toggledElProgBar.role = "progressbar"
+            toggledElProgWrapper.appendChild(toggledElProgBar)
+            toggledEl.appendChild(toggledElProgWrapper)
 
-            controlsEl.appendChild(toggleMinusButton)
             controlsEl.appendChild(togglePlusButton)
             controlsEl.appendChild(toggledEl)
+            controlsEl.appendChild(toggleMinusButton)
           }
 
           const syncAssetState = () => {
@@ -145,21 +161,21 @@ export function attachAssetsUI(
             costEl.innerText = `Next cost: ${formatCosts(nextCost)}`
             constructButton.disabled = !helpers.affordCost(nextCost)
 
-            if (toggledEl) {
+            if (liveGen.spec.toggleable) {
               const currentToggled = Math.min(
                 liveGen.amount,
                 Math.max(0, liveGen.toggled ?? 0),
               )
-              toggledEl.innerText = `Active: ${currentToggled}/${liveGen.amount}`
-            }
+              toggledElLabel.innerText = `${currentToggled}/${liveGen.amount}`
 
-            if (toggleMinusButton) {
               toggleMinusButton.disabled = (liveGen.toggled ?? 0) <= 0
-            }
 
-            if (togglePlusButton) {
               togglePlusButton.disabled =
                 (liveGen.toggled ?? 0) >= liveGen.amount
+
+              const progressRatio = (liveGen.toggled ?? 0) / liveGen.amount
+              console.log(progressRatio)
+              toggledElProgBar.style.height = `${progressRatio * 100}%`
             }
           }
 
@@ -170,10 +186,43 @@ export function attachAssetsUI(
             1,
           )}%`
 
-          body.appendChild(gainEl)
+          // Layout: left column for info, right column for interactions
+          const row = document.createElement("div")
+          // Use bootstrap flex utilities to separate left/right sections
+          row.className =
+            "d-flex align-items-start justify-content-between gap-3"
+
+          const leftCol = document.createElement("div")
+
+          const titleEl = document.createElement("h5")
+          titleEl.className = "card-title h6"
+          titleEl.innerHTML = genState.spec.longName
+          leftCol.appendChild(titleEl)
+
+          if (genState.spec.flavorText) {
+            const flavor = document.createElement("div")
+            // subtle, compact flavor text
+            flavor.className = "card-text text-muted small"
+            if (helpers.getGameSettings().UseSansSerifDescriptions.value) {
+              flavor.classList.add("sans-serif")
+            }
+            flavor.innerHTML = genState.spec.flavorText
+            leftCol.appendChild(flavor)
+          }
+
+          if (genState.spec.metaText) {
+            const meta = document.createElement("div")
+            // subtle, compact meta text
+            meta.className = "card-text tag-meta small"
+            if (helpers.getGameSettings().UseSansSerifDescriptions.value) {
+              meta.classList.add("sans-serif")
+            }
+            meta.innerHTML = genState.spec.metaText
+            leftCol.appendChild(meta)
+          }
           if (genState.spec.baseConsumePerSec) {
             const consumeEl = document.createElement("div")
-            consumeEl.className = "text-muted small"
+            consumeEl.className = "tag-_err small"
             try {
               const consumes = genState.spec.baseConsumePerSec
                 .map((g) => `${g.value} ${g.id}`)
@@ -182,12 +231,22 @@ export function attachAssetsUI(
             } catch {
               consumeEl.innerText = "Consumes/sec: -"
             }
-            body.appendChild(consumeEl)
+            leftCol.appendChild(consumeEl)
           }
-          body.appendChild(costEl)
-          body.appendChild(amountEl)
-          body.appendChild(controlsEl)
-          body.appendChild(effEl)
+
+          const rightCol = document.createElement("div")
+          // Keep controls stacked and aligned to the end (right)
+          rightCol.className = "d-flex w-100 flex-column align-items-end"
+          rightCol.appendChild(gainEl)
+          rightCol.appendChild(costEl)
+          rightCol.appendChild(amountEl)
+          rightCol.appendChild(effEl)
+          rightCol.appendChild(constructButton)
+
+          row.appendChild(leftCol)
+          row.appendChild(rightCol)
+
+          body.appendChild(row)
 
           syncAssetState()
 
@@ -197,11 +256,15 @@ export function attachAssetsUI(
             genState.status === ContentStatusKey.New,
           )
 
+          if (genState.spec.toggleable) {
+            cardRow.appendChild(controlsEl)
+          }
+
           genState.element = card
           list!.appendChild(card)
 
           // Register an updater so we refresh efficiency (or other live fields)
-          helpers.registerUpdater(() => {
+          helpers.registerFastUpdater(() => {
             try {
               const liveGen = helpers.getGenerators()[genId]
               effEl.innerText = `Efficiency: ${(liveGen.efficiency * 100).toFixed(1)}%`

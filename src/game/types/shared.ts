@@ -27,6 +27,7 @@ export type GameEngineHelper = {
 
   // Updaters / registration
   registerUpdater: (fn: (snapshot: unknown) => void) => void;
+  registerFastUpdater: (fn: (snapshot: unknown) => void) => void;
 
   // Game actions
   affordCost: (cost: Cost[]) => boolean;

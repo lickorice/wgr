@@ -2,7 +2,7 @@
 
 # Major mechanics TODO
 - Randomized world seed generator
-- [Resistance] mechanic
+- [Resistance] mechanic, conspicuousness stat
 
 # Lore TODO
 - [ ] Chapter 1: Local dominance

@@ -136,6 +136,7 @@ export class GameEngine {
   private loreEngine: LoreEngine
 
   private gameLogicUI: ((snapshot: GameSnapshot) => void)[] = []
+  private fastGameLogicUI: ((snapshot: GameSnapshot) => void)[] = []
   // Handler id for the autosave interval so it can be cleared/restarted
   private autosaveTimerId: number | null = null
 
@@ -226,6 +227,9 @@ export class GameEngine {
       getGameSettings: () => this.gameSettings,
       registerUpdater: (fn: (snapshot: unknown) => void) => {
         this.gameLogicUI.push(fn as (snapshot: GameSnapshot) => void)
+      },
+      registerFastUpdater: (fn: (snapshot: unknown) => void) => {
+        this.fastGameLogicUI.push(fn as (snapshot: GameSnapshot) => void)
       },
       affordCost: (cost) => this.affordCost(cost),
       deductCost: (cost) => this.deductCost(cost),
@@ -750,6 +754,16 @@ export class GameEngine {
         break
     }
 
+    // For responsive results, such as togglers / buy buttons:
+    this.fastGameLogicUI.map((func) =>
+      func({
+        actions: this.actions,
+        unlocks: Array.from(this.unlocks),
+        resources: this.resources,
+        generators: this.generators,
+        gameSettings: this.gameSettings,
+      }),
+    )
     requestAnimationFrame(() => this.renderLoop())
   }
 }

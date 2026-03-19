@@ -420,3 +420,64 @@ main.container-fluid {
     border-color: #6c757d !important;
     color: #ffffff !important;
 }
+.slim-control {
+    border-left: 1px solid #dee2e6;
+}
+
+/* The container for the middle elements */
+.middle-section {
+    flex-grow: 1;
+    width: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Rotating the text */
+.rotated-text {
+    transform: rotate(-90deg);
+    white-space: nowrap;
+    position: absolute;
+    z-index: 2;
+    font-weight: bold;
+    pointer-events: none; /* Allows clicks to pass through to the bar if needed */
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.6);
+}
+/*
+Source - https://stackoverflow.com/a/34803778
+Posted by Elijah Murray, modified by community. See post 'Timeline' for change history
+Retrieved 2026-03-19, License - CC BY-SA 3.0
+*/
+
+.toggle-progress {
+    background:
+        linear-gradient(
+            0deg,
+            rgba(155, 49, 7, 0.92),
+            rgba(235, 185, 93, 0.92),
+        );
+}
+
+.progress-vertical {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  float: left;
+  display: -webkit-box;  /* OLD - iOS 6-, Safari 3.1-6, BB7 */
+  display: -ms-flexbox;  /* TWEENER - IE 10 */
+  display: -webkit-flex; /* NEW - Safari 6.1+. iOS 7.1+, BB10 */
+  display: flex;         /* NEW, Spec - Firefox, Chrome, Opera */
+  align-items: flex-end;
+  -webkit-align-items: flex-end; /* Safari 7.0+ */
+}
+
+.progress-vertical .progress-bar {
+  width: 100%;
+  height: 0;
+  -webkit-transition: height 0.6s ease;
+  -o-transition: height 0.6s ease;
+  transition: height 0.6s ease;
+}
