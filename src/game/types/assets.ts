@@ -2,16 +2,16 @@ import { type ContentStatus } from "./shared"
 import { type Cost } from "./resources"
 import { type UnlockId } from "./unlocks"
 
-export const GeneratorKey = {
+export const AssetKey = {
   PlanetaryLumiumCollector: "PlanetaryLumiumCollector",
   RegolithAccumulator: "RegolithAccumulator",
   MolecularAssembler: "MolecularAssembler",
 } as const
 
-export type GeneratorId = (typeof GeneratorKey)[keyof typeof GeneratorKey];
+export type AssetId = (typeof AssetKey)[keyof typeof AssetKey];
 
-export type GeneratorSpec = {
-  id: GeneratorId;
+export type AssetSpec = {
+  id: AssetId;
   longName: string;
   flavorText: string;
   baseGainPerSec: Cost[];
@@ -25,9 +25,9 @@ export type GeneratorSpec = {
   defaultAmount?: number;
 };
 
-export type GeneratorState = {
-  id: GeneratorId;
-  spec: GeneratorSpec;
+export type AssetState = {
+  id: AssetId;
+  spec: AssetSpec;
   status: ContentStatus;
   amount: number;
   efficiency: number;
@@ -35,4 +35,4 @@ export type GeneratorState = {
   element?: HTMLElement;
 };
 
-export type GeneratorStateLookup = Record<GeneratorId, GeneratorState>;
+export type AssetStateLookup = Record<AssetId, AssetState>;

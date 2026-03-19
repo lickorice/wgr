@@ -1,8 +1,8 @@
-import { type GeneratorSpec } from "./generators"
+import { type AssetSpec } from "./assets"
 import { type ActionSpec } from "./actions"
 import { type ResourceSpec } from "./resources"
 import { type GameSetting } from "./settings"
 
 export interface HasSpec {
-  spec: GeneratorSpec | ActionSpec | ResourceSpec | GameSetting;
+  spec: AssetSpec | ActionSpec | ResourceSpec | GameSetting;
 }

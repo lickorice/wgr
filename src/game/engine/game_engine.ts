@@ -16,10 +16,10 @@ import {
 } from "@game/types/lore"
 import { ContentStatusKey } from "@game/types/shared"
 import {
-  GeneratorKey,
-  type GeneratorId,
-  type GeneratorStateLookup,
-} from "@game/types/generators"
+  AssetKey,
+  type AssetId,
+  type AssetStateLookup,
+} from "@src/game/types/assets"
 import {
   ResourceKey,
   type ResourceId,
@@ -29,7 +29,7 @@ import {
 } from "@game/types/resources"
 import { type ActionId, type ActionStateLookup } from "@game/types/actions"
 import { ALL_ACTIONS } from "@game/engine/data/actions"
-import { ALL_GENERATORS } from "@game/engine/data/generators"
+import { ALL_ASSETS } from "@game/engine/data/assets"
 import {
   SettingsKey,
   type SettingsId,
@@ -48,10 +48,10 @@ type MenuBarId = (typeof MenuBarKey)[keyof typeof MenuBarKey];
 
 const MENU_CONTENT_STATUS_MAP: Record<
   MenuBarId,
-  Array<"actions" | "generators" | "gameSettings">
+  Array<"actions" | "assets" | "gameSettings">
 > = {
   [MenuBarKey.Actions]: ["actions"],
-  [MenuBarKey.Assets]: ["generators"],
+  [MenuBarKey.Assets]: ["assets"],
   [MenuBarKey.Settings]: ["gameSettings"],
 }
 
@@ -60,7 +60,7 @@ export type GameSnapshot = {
   actions: ActionStateLookup;
   unlocks: UnlockId[];
   resources: ResourceStateLookup;
-  generators: GeneratorStateLookup;
+  assets: AssetStateLookup;
   gameSettings: GameSettingStateLookup;
   gameVersion?: string;
   alreadyReadChapters?: ChapterId[];
@@ -88,24 +88,23 @@ export class GameEngine {
   )
   unlocks: Set<UnlockId> = new Set()
   resources: ResourceStateLookup
-  generators: GeneratorStateLookup = Object.entries(ALL_GENERATORS).reduce(
+  assets: AssetStateLookup = Object.entries(ALL_ASSETS).reduce(
     (acc, [id, spec]) => {
-      const generatorId = id as GeneratorId
+      const assetId = id as AssetId
 
-      acc[generatorId] = {
-        id: generatorId,
+      acc[assetId] = {
+        id: assetId,
         spec: spec,
         status: ContentStatusKey.Locked,
         // Start with one solar panel always
         amount: spec.defaultAmount ?? 0,
-        efficiency:
-          generatorId === GeneratorKey.PlanetaryLumiumCollector ? 0.2 : 1.0,
+        efficiency: assetId === AssetKey.PlanetaryLumiumCollector ? 0.2 : 1.0,
         toggled: 0, // Always start off, if toggleable.
       }
 
       return acc
     },
-    {} as GeneratorStateLookup,
+    {} as AssetStateLookup,
   )
   gameSettings: GameSettingStateLookup = Object.entries(ALL_SETTINGS).reduce(
     (acc, [id, spec]) => {
@@ -221,7 +220,7 @@ export class GameEngine {
 
   private getHelpers(): GameEngineHelper {
     return {
-      getGenerators: () => this.generators,
+      getAssets: () => this.assets,
       getActions: () => this.actions,
       getResources: () => this.resources,
       getGameSettings: () => this.gameSettings,
@@ -310,7 +309,7 @@ export class GameEngine {
       actions: this.actions,
       unlocks: Array.from(this.unlocks),
       resources: this.resources,
-      generators: this.generators,
+      assets: this.assets,
       gameSettings: this.gameSettings,
       gameVersion: BUILD_VERSION,
       lastSaveDate: Date.now(),
@@ -339,7 +338,7 @@ export class GameEngine {
     const sanitizedSnapshot = {
       ...snapshot,
       actions: sanitizeState(snapshot.actions),
-      generators: sanitizeState(snapshot.generators),
+      assets: sanitizeState(snapshot.assets),
       // Resources currently keep runtime values (amount/cap) but their
       // `spec` can be reconstructed on load from current defaults.
       resources: sanitizeState(snapshot.resources),
@@ -367,7 +366,7 @@ export class GameEngine {
         })
       }
 
-      // 2. Restore / migrate Resources, Settings, Generators & Unlocks
+      // 2. Restore / migrate Resources, Settings, Assets & Unlocks
       // Merge saved resources into current defaults (constructor set defaults)
       const savedResources = (data.resources ??
         {}) as Partial<ResourceStateLookup>
@@ -402,14 +401,13 @@ export class GameEngine {
         }
       })
 
-      // Merge generators: ensure ALL_GENERATORS keys exist and re-attach spec
-      const savedGenerators = (data.generators ??
-        {}) as Partial<GeneratorStateLookup>
-      Object.keys(this.generators).forEach((id) => {
-        const generatorId = id as GeneratorId
-        const defaultGen = this.generators[generatorId]
-        const saved = savedGenerators?.[generatorId]
-        this.generators[generatorId] = {
+      // Merge assets: ensure ALL_GENERATORS keys exist and re-attach spec
+      const savedAssets = (data.assets ?? {}) as Partial<AssetStateLookup>
+      Object.keys(this.assets).forEach((id) => {
+        const assetId = id as AssetId
+        const defaultGen = this.assets[assetId]
+        const saved = savedAssets?.[assetId]
+        this.assets[assetId] = {
           ...defaultGen,
           ...(saved ?? {}),
           spec: defaultGen.spec,
@@ -475,17 +473,17 @@ export class GameEngine {
   }
 
   private doTick() {
-    // Increment resources based on generators:
-    Object.entries(this.generators).map(([_, generatorState]) => {
-      if (!generatorState.amount) return // Fast return
+    // Increment resources based on assets:
+    Object.entries(this.assets).map(([_, assetState]) => {
+      if (!assetState.amount) return // Fast return
 
-      const { spec, amount, efficiency } = generatorState
+      const { spec, amount, efficiency } = assetState
 
       // First, if toggleable and toggled off, don't do anything
-      if (spec.toggleable && !generatorState.toggled) return
+      if (spec.toggleable && !assetState.toggled) return
       // Then, count how many are "active"
       const activeCount = spec.toggleable
-        ? Math.min(generatorState.toggled ?? 0, amount)
+        ? Math.min(assetState.toggled ?? 0, amount)
         : amount
 
       // If not afforded, turn everything off, if toggleable.
@@ -499,7 +497,7 @@ export class GameEngine {
           return acc
         }, [] as Cost[])
         if (!this.affordCost(totalCost)) {
-          generatorState.toggled = 0
+          assetState.toggled = 0
           return
         }
         // Deduct the cost:
@@ -527,7 +525,7 @@ export class GameEngine {
     })
     checkUnlockables(Object.values(this.actions), unlockOptions)
     checkUnlockables(Object.values(this.gameSettings), unlockOptions)
-    checkUnlockables(Object.values(this.generators), unlockOptions)
+    checkUnlockables(Object.values(this.assets), unlockOptions)
 
     // Play lore chapters if any:
     Object.entries(this.loreEngine.chapters).map(([_, chapterEntry]) => {
@@ -543,7 +541,7 @@ export class GameEngine {
         actions: this.actions,
         unlocks: Array.from(this.unlocks),
         resources: this.resources,
-        generators: this.generators,
+        assets: this.assets,
         gameSettings: this.gameSettings,
       }),
     )
@@ -591,7 +589,7 @@ export class GameEngine {
         actions: this.actions,
         unlocks: Array.from(this.unlocks),
         resources: this.resources,
-        generators: this.generators,
+        assets: this.assets,
         gameSettings: this.gameSettings,
         play: (e) => this.loreEngine.play(e),
       })
@@ -760,7 +758,7 @@ export class GameEngine {
         actions: this.actions,
         unlocks: Array.from(this.unlocks),
         resources: this.resources,
-        generators: this.generators,
+        assets: this.assets,
         gameSettings: this.gameSettings,
       }),
     )

@@ -1,5 +1,5 @@
 import type { ActionId, ActionStateLookup } from "@game/types/actions"
-import type { GeneratorStateLookup } from "@game/types/generators"
+import type { AssetStateLookup } from "@src/game/types/assets"
 import type { SettingsId, GameSettingStateLookup } from "@game/types/settings"
 import type { Cost, ResourceStateLookup } from "@game/types/resources"
 import type { ChapterId, Message } from "@game/types/lore"
@@ -20,7 +20,7 @@ export type ContentStatus =
 // that previously existed in various layout files.
 export type GameEngineHelper = {
   // Accessors
-  getGenerators: () => GeneratorStateLookup;
+  getAssets: () => AssetStateLookup;
   getActions: () => ActionStateLookup;
   getResources: () => ResourceStateLookup;
   getGameSettings: () => GameSettingStateLookup;

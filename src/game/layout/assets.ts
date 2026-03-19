@@ -1,5 +1,5 @@
 import { ContentStatusKey } from "@game/types/shared"
-import type { GeneratorId } from "@game/types/generators"
+import type { AssetId } from "@src/game/types/assets"
 import type { GameEngineHelper } from "@game/types/shared"
 
 function createCard() {
@@ -24,14 +24,13 @@ export function attachAssetsUI(
   container: HTMLElement,
   helpers: GameEngineHelper,
 ) {
-  const getConstructionCost = (genId: GeneratorId) => {
-    const generator = helpers.getGenerators()[genId]
-    const defaultAmount = generator.spec.defaultAmount ?? 0
-    return generator.spec.baseCost.map((cost) => ({
+  const getConstructionCost = (genId: AssetId) => {
+    const asset = helpers.getAssets()[genId]
+    const defaultAmount = asset.spec.defaultAmount ?? 0
+    return asset.spec.baseCost.map((cost) => ({
       id: cost.id,
       value:
-        cost.value *
-        generator.spec.growthFactor ** (generator.amount - defaultAmount),
+        cost.value * asset.spec.growthFactor ** (asset.amount - defaultAmount),
     }))
   }
 
@@ -66,12 +65,12 @@ export function attachAssetsUI(
 
   const buildList = () => {
     list!.innerHTML = ""
-    const gens = helpers.getGenerators()
+    const gens = helpers.getAssets()
     const gameSettings = helpers.getGameSettings()
 
     let unlockedCount = 0
     Object.entries(gens).forEach(([genIdRaw, genState]) => {
-      const genId = genIdRaw as GeneratorId
+      const genId = genIdRaw as AssetId
       if (genState.status !== ContentStatusKey.Locked) {
         unlockedCount++
 
@@ -106,7 +105,7 @@ export function attachAssetsUI(
             const nextCost = getConstructionCost(genId)
             if (!helpers.affordCost(nextCost)) return
             helpers.deductCost(nextCost)
-            helpers.getGenerators()[genId].amount += 1
+            helpers.getAssets()[genId].amount += 1
           }
 
           const controlsEl = document.createElement("div")
@@ -124,7 +123,7 @@ export function attachAssetsUI(
             toggleMinusButton.innerText = `-`
             toggleMinusButton.style.height = "20%"
             toggleMinusButton.onclick = () => {
-              const liveGen = helpers.getGenerators()[genId]
+              const liveGen = helpers.getAssets()[genId]
               liveGen.toggled = Math.max(0, liveGen.toggled ?? 0)
               liveGen.toggled = Math.max(0, (liveGen.toggled ?? 0) - 1)
             }
@@ -134,7 +133,7 @@ export function attachAssetsUI(
             togglePlusButton.innerText = `+`
             togglePlusButton.style.height = "20%"
             togglePlusButton.onclick = () => {
-              const liveGen = helpers.getGenerators()[genId]
+              const liveGen = helpers.getAssets()[genId]
               const currentToggled = Math.max(0, liveGen.toggled ?? 0)
               liveGen.toggled = Math.min(liveGen.amount, currentToggled + 1)
             }
@@ -155,7 +154,7 @@ export function attachAssetsUI(
           }
 
           const syncAssetState = () => {
-            const liveGen = helpers.getGenerators()[genId]
+            const liveGen = helpers.getAssets()[genId]
             const nextCost = getConstructionCost(genId)
             amountEl.innerText = `Constructed: ${liveGen.amount}`
             costEl.innerText = `Next cost: ${formatCosts(nextCost)}`
@@ -174,7 +173,6 @@ export function attachAssetsUI(
                 (liveGen.toggled ?? 0) >= liveGen.amount
 
               const progressRatio = (liveGen.toggled ?? 0) / liveGen.amount
-              console.log(progressRatio)
               toggledElProgBar.style.height = `${progressRatio * 100}%`
             }
           }
@@ -266,7 +264,7 @@ export function attachAssetsUI(
           // Register an updater so we refresh efficiency (or other live fields)
           helpers.registerFastUpdater(() => {
             try {
-              const liveGen = helpers.getGenerators()[genId]
+              const liveGen = helpers.getAssets()[genId]
               effEl.innerText = `Efficiency: ${(liveGen.efficiency * 100).toFixed(1)}%`
               syncAssetState()
             } catch {
@@ -302,13 +300,13 @@ export function attachAssetsUI(
   }
 
   const computeSnapshot = () => {
-    const gens = helpers.getGenerators()
+    const gens = helpers.getAssets()
     try {
       return JSON.stringify(
         Object.entries(gens).map(([id, s]) => ({ id, status: s.status })),
       )
     } catch {
-      return String(Object.keys(helpers.getGenerators()).length)
+      return String(Object.keys(helpers.getAssets()).length)
     }
   }
 

@@ -110,9 +110,9 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
     ],
     prerequisites: [UnlockKey.AssetLore],
     effect: (gs) => {
-      const oldEff = gs.generators.PlanetaryLumiumCollector.efficiency
-      gs.generators.PlanetaryLumiumCollector.efficiency += 0.2
-      const newEff = gs.generators.PlanetaryLumiumCollector.efficiency
+      const oldEff = gs.assets.PlanetaryLumiumCollector.efficiency
+      gs.assets.PlanetaryLumiumCollector.efficiency += 0.2
+      const newEff = gs.assets.PlanetaryLumiumCollector.efficiency
       gs.play!([
         {
           tag: MessageTagKey.Info,
@@ -139,9 +139,9 @@ export const ALL_ACTIONS: Record<ActionId, ActionSpec> = {
     ],
     prerequisites: [UnlockKey.AssetLore],
     effect: (gs) => {
-      const oldEff = gs.generators.PlanetaryLumiumCollector.efficiency
-      gs.generators.PlanetaryLumiumCollector.efficiency += 0.5
-      const newEff = gs.generators.PlanetaryLumiumCollector.efficiency
+      const oldEff = gs.assets.PlanetaryLumiumCollector.efficiency
+      gs.assets.PlanetaryLumiumCollector.efficiency += 0.5
+      const newEff = gs.assets.PlanetaryLumiumCollector.efficiency
       gs.play!([
         {
           tag: MessageTagKey.Info,
