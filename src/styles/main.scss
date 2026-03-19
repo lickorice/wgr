@@ -8,20 +8,29 @@ body {
     font-family: 'Roboto Mono', monospace;
 }
 
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+}
+
 #terminal-container {
     background-color: #0a0a0a;
     color: #d1d1d1;
     font-size: 14px;
-    padding: 24px;
-    height: 500px;
+    padding: 24px max(24px, calc((100% - 1320px) / 2 + 12px));
+    width: 100%;
+    min-height: 30vh;
     /* Always show a vertical scrollbar to avoid width-stutter when content changes. */
     overflow-y: scroll;
-    border-radius: 8px;
-    border: 1px solid #333;
     line-height: 1.6;
     position: relative; /* allow absolute-positioned status UI */
     /* Keep space for scrollbars on modern browsers so layout doesn't jump */
     scrollbar-gutter: stable both-edges;
+    box-sizing: border-box;
 }
 
 .terminal-line {

@@ -203,9 +203,13 @@ export class GameEngine {
     this.assetsContainer = document.createElement("div")
     this.assetsContainer.id = "assets-container"
 
-    this.container.appendChild(this.metricsContainer)
-    this.container.appendChild(this.menuBar)
-    this.container.appendChild(this.primaryContainer)
+    const bottomContainer = document.createElement("div")
+    bottomContainer.className = "container"
+    bottomContainer.appendChild(this.metricsContainer)
+    bottomContainer.appendChild(this.menuBar)
+    bottomContainer.appendChild(this.primaryContainer)
+
+    this.container.appendChild(bottomContainer)
     // Set initial panel
     this.currentMenuBar = MenuBarKey.Actions
     this.setActiveContainer(MenuBarKey.Actions)
